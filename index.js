@@ -59,7 +59,7 @@ async function SetRank(GroupId, UserId, RankNumber, Issuer) {
 async function LogRankChange(GroupId, UserId, RoleInfo, Issuer) {
   const Data = await GetJsonBin();
   Data.RankChanges = Data.RankChanges || [];
-  const dateOnly = new Date().toISOString().split("T")[0]; // YYYY-MM-DD only
+  const dateOnly = new Date().toISOString().split("T")[0];
   Data.RankChanges.push({ GroupId, UserId, NewRank: RoleInfo, IssuedBy: Issuer || "API", Timestamp: dateOnly });
   await SaveJsonBin(Data);
 }
@@ -95,16 +95,42 @@ async function GetCurrentRank(GroupId, UserId) {
   return GroupData.role.rank;
 }
 
-ClientBot.once("ready", async () => {
-  console.log("Bot is ready!");
+async function CheckAndIncrementUsage(userId) {
+  const db = await GetJsonBin();
+  db.Whitelist = db.Whitelist || [];
+  if (db.Whitelist.includes(String(userId))) return { allowed: true };
 
+  db.Usage = db.Usage || {};
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const userKey = String(userId);
+  const userUsage = db.Usage[userKey] || { month: currentMonth, count: 0 };
+
+  if (userUsage.month !== currentMonth) {
+    userUsage.month = currentMonth;
+    userUsage.count = 0;
+  }
+
+  if (userUsage.count >= 1000) {
+    db.Usage[userKey] = userUsage;
+    await SaveJsonBin(db);
+    return { allowed: false };
+  }
+
+  userUsage.count++;
+  db.Usage[userKey] = userUsage;
+  await SaveJsonBin(db);
+  return { allowed: true };
+}
+
+ClientBot.once("ready", async () => {
   const Commands = [
     new SlashCommandBuilder().setName("verify").setDescription("Verify your Roblox account").addStringOption(opt => opt.setName("username").setDescription("Your Roblox username").setRequired(true)),
     new SlashCommandBuilder().setName("config").setDescription("Set the group ID for this server").addIntegerOption(opt => opt.setName("groupid").setDescription("Roblox group ID").setRequired(true)),
     new SlashCommandBuilder().setName("setrank").setDescription("Set a user's rank").addIntegerOption(opt => opt.setName("userid").setDescription("Roblox user ID").setRequired(true)).addIntegerOption(opt => opt.setName("rank").setDescription("Rank number").setRequired(true)),
     new SlashCommandBuilder().setName("promote").setDescription("Promote a user").addIntegerOption(opt => opt.setName("userid").setDescription("Roblox user ID").setRequired(true)),
     new SlashCommandBuilder().setName("demote").setDescription("Demote a user").addIntegerOption(opt => opt.setName("userid").setDescription("Roblox user ID").setRequired(true)),
-    new SlashCommandBuilder().setName("whois").setDescription("Lookup a Roblox user from a Discord user").addUserOption(opt => opt.setName("user").setDescription("The Discord user to look up (leave blank to look up yourself)").setRequired(false))
+    new SlashCommandBuilder().setName("whois").setDescription("Lookup a Roblox user from a Discord user").addUserOption(opt => opt.setName("user").setDescription("The Discord user to look up (leave blank to look up yourself)").setRequired(false)),
+    new SlashCommandBuilder().setName("usage").setDescription("Check your monthly ranking requests")
   ].map(cmd => cmd.toJSON());
 
   const Rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
@@ -153,6 +179,9 @@ ClientBot.on("interactionCreate", async (Interaction) => {
     }
 
     if (["setrank", "promote", "demote"].includes(CommandName)) {
+      const usage = await CheckAndIncrementUsage(Interaction.user.id);
+      if (!usage.allowed) return Interaction.reply({ content: "You have reached the monthly limit of 1000 requests.", ephemeral: true });
+
       const Db = await GetJsonBin();
       if (!Db.VerifiedUsers || !Db.VerifiedUsers[Interaction.user.id]) return Interaction.reply({ content: "You must verify first with /verify.", ephemeral: true });
       if (!Db.ServerConfig || !Db.ServerConfig[Interaction.guild.id]) return Interaction.reply({ content: "Group ID not set. Run /config <groupId> first.", ephemeral: true });
@@ -207,15 +236,40 @@ ClientBot.on("interactionCreate", async (Interaction) => {
       }
     }
 
+    if (CommandName === "usage") {
+      const db = await GetJsonBin();
+      db.Whitelist = db.Whitelist || [];
+      db.Usage = db.Usage || {};
+      const userKey = String(Interaction.user.id);
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const userUsage = db.Usage[userKey] || { month: currentMonth, count: 0 };
+
+      if (userUsage.month !== currentMonth) {
+        userUsage.month = currentMonth;
+        userUsage.count = 0;
+        db.Usage[userKey] = userUsage;
+        await SaveJsonBin(db);
+      }
+
+      const resetDate = new Date();
+      resetDate.setMonth(resetDate.getMonth() + 1, 1);
+      resetDate.setHours(0, 0, 0, 0);
+
+      if (db.Whitelist.includes(userKey)) {
+        return Interaction.reply({ content: `You are whitelisted and have unlimited usage. Next reset: ${resetDate.toDateString()}`, ephemeral: true });
+      }
+
+      return Interaction.reply({ content: `You have used ${userUsage.count}/1000 ranking requests this month. Resets on: ${resetDate.toDateString()}`, ephemeral: true });
+    }
+
     if (CommandName === "whois") {
       const TargetUser = Interaction.options.getUser("user") || Interaction.user;
-
       const Db = await GetJsonBin();
       const VerifiedUsers = Db.VerifiedUsers || {};
       const RobloxUserId = VerifiedUsers[TargetUser.id];
 
       if (!RobloxUserId) {
-        return Interaction.reply({ content: `${TargetUser.tag} has not verified a Roblox account.`, ephemeral: true })
+        return Interaction.reply({ content: `${TargetUser.tag} has not verified a Roblox account.`, ephemeral: true });
       }
 
       try {
@@ -234,9 +288,8 @@ ClientBot.on("interactionCreate", async (Interaction) => {
           .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${RobloxInfo.id}&width=150&height=150&format=png`);
 
         await Interaction.reply({ embeds: [Embed] });
-
       } catch (err) {
-        await Interaction.reply({ content: `Failed to get info for UserId: ${RobloxUserId}: ${err.message}`, ephemeral: true});
+        await Interaction.reply({ content: `Failed to get info for UserId: ${RobloxUserId}: ${err.message}`, ephemeral: true });
       }
     }
   } else if (Interaction.isButton() && Interaction.customId === "done_verification") {
@@ -265,17 +318,53 @@ ClientBot.on("messageCreate", async (message) => {
   const cmd = args[0].toLowerCase();
   const GroupId = args[1];
 
-  if (!GroupId || !PendingApprovals[GroupId]) return message.reply("Invalid or unknown group ID.");
-  const { requesterId, guildId } = PendingApprovals[GroupId];
+  if (cmd === "!accept" || cmd === "!decline") {
+    if (!GroupId || !PendingApprovals[GroupId]) return message.reply("Invalid or unknown group ID.");
+    const { requesterId } = PendingApprovals[GroupId];
 
-  if (cmd === "!accept") {
-    await ClientBot.users.send(requesterId, `Your group config (ID: ${GroupId}) has been accepted! Please rank DavidRankBot in your Roblox group.`);
-    delete PendingApprovals[GroupId];
-    message.channel.send(`Accepted group ${GroupId} and notified <@${requesterId}>`);
-  } else if (cmd === "!decline") {
-    await ClientBot.users.send(requesterId, `Your group config (ID: ${GroupId}) has been declined by the RoSystem Administration Team! Please contact dizrobloxfan1 for more information.`);
-    delete PendingApprovals[GroupId];
-    message.channel.send(`Declined group ${GroupId} and notified <@${requesterId}>`);
+    if (cmd === "!accept") {
+      await ClientBot.users.send(requesterId, `Your group config (ID: ${GroupId}) has been accepted. Please rank DavidRankBot in your Roblox group.`);
+      delete PendingApprovals[GroupId];
+      return message.channel.send(`Accepted group ${GroupId} and notified <@${requesterId}>`);
+    } else if (cmd === "!decline") {
+      await ClientBot.users.send(requesterId, `Your group config (ID: ${GroupId}) has been declined by the RoSystem Administration Team. Please contact dizrobloxfan1 for more information.`);
+      delete PendingApprovals[GroupId];
+      return message.channel.send(`Declined group ${GroupId} and notified <@${requesterId}>`);
+    }
+  }
+
+  if (cmd === "!whitelist") {
+    const action = args[1];
+    let userId = args[2];
+    if (message.mentions.users.size > 0) userId = message.mentions.users.first().id;
+
+    if (!action) return message.reply("Usage: !whitelist add <discordId> | !whitelist remove <discordId> | !whitelist list");
+
+    const db = await GetJsonBin();
+    db.Whitelist = db.Whitelist || [];
+
+    if (action === "add") {
+      if (!userId) return message.reply("Provide a Discord user ID or mention.");
+      if (!db.Whitelist.includes(userId)) {
+        db.Whitelist.push(userId);
+        await SaveJsonBin(db);
+        return message.reply(`Added <@${userId}> to whitelist.`);
+      } else {
+        return message.reply("User is already whitelisted.");
+      }
+    }
+
+    if (action === "remove") {
+      if (!userId) return message.reply("Provide a Discord user ID or mention.");
+      db.Whitelist = db.Whitelist.filter(id => id !== userId);
+      await SaveJsonBin(db);
+      return message.reply(`Removed <@${userId}> from whitelist.`);
+    }
+
+    if (action === "list") {
+      if (db.Whitelist.length === 0) return message.reply("Whitelist is empty.");
+      return message.reply(`Whitelisted users: ${db.Whitelist.map(id => `<@${id}>`).join(", ")}`);
+    }
   }
 });
 
