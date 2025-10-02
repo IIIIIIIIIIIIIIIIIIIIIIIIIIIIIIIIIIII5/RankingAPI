@@ -195,37 +195,46 @@ function auth(req, res, next) {
 app.post("/promote/:groupId", auth, async (req, res) => {
   const { groupId } = req.params;
   const { UserId } = req.body;
+  if (!UserId) return res.status(400).json({ error: "Missing UserId" });
+
   try {
-    const CurrentRank = await GetCurrentRank(Number(groupId), UserId);
+    const CurrentRank = await GetCurrentRank(Number(groupId), String(UserId));
     const NewRank = CurrentRank + 1;
-    await SetRank(Number(groupId), UserId, NewRank, "API");
-    res.json({ success: true, userId: UserId, newRank: NewRank });
+    await SetRank(Number(groupId), String(UserId), NewRank, "API");
+    res.json({ success: true, userId: UserId, oldRank: CurrentRank, newRank: NewRank });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Promote error:", err.response?.data || err.message);
+    res.status(500).json({ error: err.message || "Unknown error" });
   }
 });
 
 app.post("/demote/:groupId", auth, async (req, res) => {
   const { groupId } = req.params;
   const { UserId } = req.body;
+  if (!UserId) return res.status(400).json({ error: "Missing UserId" });
+
   try {
-    const CurrentRank = await GetCurrentRank(Number(groupId), UserId);
+    const CurrentRank = await GetCurrentRank(Number(groupId), String(UserId));
     const NewRank = Math.max(CurrentRank - 1, 1);
-    await SetRank(Number(groupId), UserId, NewRank, "API");
-    res.json({ success: true, userId: UserId, newRank: NewRank });
+    await SetRank(Number(groupId), String(UserId), NewRank, "API");
+    res.json({ success: true, userId: UserId, oldRank: CurrentRank, newRank: NewRank });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Demote error:", err.response?.data || err.message);
+    res.status(500).json({ error: err.message || "Unknown error" });
   }
 });
 
 app.post("/setrank/:groupId", auth, async (req, res) => {
   const { groupId } = req.params;
   const { UserId, RankNumber } = req.body;
+  if (!UserId || !RankNumber) return res.status(400).json({ error: "Missing UserId or RankNumber" });
+
   try {
-    await SetRank(Number(groupId), UserId, RankNumber, "API");
+    await SetRank(Number(groupId), String(UserId), Number(RankNumber), "API");
     res.json({ success: true, userId: UserId, newRank: RankNumber });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("SetRank error:", err.response?.data || err.message);
+    res.status(500).json({ error: err.message || "Unknown error" });
   }
 });
 
