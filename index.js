@@ -195,16 +195,26 @@ function auth(req, res, next) {
 app.post("/promote/:groupId", auth, async (req, res) => {
   const { groupId } = req.params;
   const { UserId } = req.body;
+
   if (!UserId) return res.status(400).json({ error: "Missing UserId" });
 
   try {
-    const CurrentRank = await GetCurrentRank(Number(groupId), String(UserId));
-    const NewRank = CurrentRank + 1;
-    await SetRank(Number(groupId), String(UserId), NewRank, "API");
-    res.json({ success: true, userId: UserId, oldRank: CurrentRank, newRank: NewRank });
+    const uid = String(UserId);
+    const currentRank = await GetCurrentRank(Number(groupId), uid);
+    const roles = await FetchRoles(Number(groupId));
+    const maxRank = Math.max(...Object.keys(roles).map(Number));
+
+    if (currentRank >= maxRank) {
+      return res.status(400).json({ error: "User is already at the highest rank" });
+    }
+
+    const newRank = currentRank + 1;
+    await SetRank(Number(groupId), uid, newRank, "API");
+
+    return res.json({ success: true, userId: uid, oldRank: currentRank, newRank });
   } catch (err) {
     console.error("Promote error:", err.response?.data || err.message);
-    res.status(500).json({ error: err.message || "Unknown error" });
+    return res.status(500).json({ error: err.message || "Unknown error" });
   }
 });
 
