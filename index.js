@@ -10,7 +10,7 @@ const RobloxCookie = process.env.ROBLOSECURITY;
 const JsonBinId = process.env.JSONBIN_ID;
 const JsonBinSecret = process.env.JSONBIN_SECRET;
 const ADMIN_ID = process.env.ADMIN_ID;
-const API_KEY = process.env.API_KEY || "changeme123"; 
+const API_KEY = process.env.AUTHKEY; 
 const API_PORT = process.env.PORT || 3000;
 
 const Verifications = {};
