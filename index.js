@@ -248,4 +248,8 @@ app.post("/setrank/:groupId", auth, async (req, res) => {
   }
 });
 
+app.listen(API_PORT, () => {
+  console.log(`Ranking API running on port ${API_PORT}`);
+});
+
 ClientBot.login(process.env.BOT_TOKEN);
