@@ -86,7 +86,6 @@ async function GetCurrentRank(GroupId, UserId) {
 
 ClientBot.once("ready", async () => {
     console.log("Bot is ready!");
-    ClientBot.user.setActivity("Snowflake Prison Roleplay", { type: ActivityType.Watching });
     const Commands = [
         new SlashCommandBuilder().setName("verify").setDescription("Verify your Roblox account").addStringOption(opt => opt.setName("username").setDescription("Your Roblox username").setRequired(true)),
         new SlashCommandBuilder().setName("config").setDescription("Set the group ID for this server").addIntegerOption(opt => opt.setName("groupid").setDescription("Roblox group ID").setRequired(true)),
