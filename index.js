@@ -112,8 +112,14 @@ ClientBot.on("messageCreate", async (Message) => {
     const Cmd = Args[0].toLowerCase();
     const GroupId = Args[1];
     const Username = Args[2];
-
-    const ApprovalChan = await ClientBot.channels.fetch(ApprovalChannel);
+    
+    let ApprovalChan;
+    try {
+        ApprovalChan = await ClientBot.channels.fetch(ApprovalChannel);
+    } catch (err) {
+        console.error("Failed to fetch approval channel:", err);
+        return Message.reply("Cannot access approval channel. Check bot permissions.");
+    }
 
     if (Cmd === "!accept" || Cmd === "!decline") {
         if (!GroupId || !PendingApprovals[GroupId]) return Message.reply("Invalid or unknown group ID.");
@@ -154,6 +160,7 @@ ClientBot.on("messageCreate", async (Message) => {
                 Message.channel.send({ embeds: [Embed] });
             }
         } catch (Err) {
+            console.error("Error handling rank command:", Err);
             Message.reply("Error: " + Err.message);
         }
     }
@@ -168,4 +175,8 @@ function Auth(Req, Res, Next) {
 }
 
 App.listen(ApiPort, () => { console.log(`Ranking API running on port ${ApiPort}`); });
+
+ClientBot.on("error", (err) => console.error("Discord client error:", err));
+ClientBot.on("shardError", (err) => console.error("Discord shard error:", err));
+
 ClientBot.login(process.env.BOT_TOKEN);
