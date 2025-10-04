@@ -202,7 +202,7 @@ ClientBot.on("interactionCreate", async (Interaction) => {
                 delete PendingApprovals[groupId];
                 await Interaction.update({ content: `Accepted group ${groupId} and notified <@${requesterId}>`, components: [] });
             } else if (action === "decline") {
-                await ClientBot.users.send(requesterId, `Your group config (ID: ${groupId}) has been declined by the RoSystem Administration Team!.`);
+                await ClientBot.users.send(requesterId, `Your group config (ID: ${groupId}) has been declined by the RoSystem Administration Team!`);
                 delete PendingApprovals[groupId];
                 await Interaction.update({ content: `Declined group ${groupId} and notified <@${requesterId}>`, components: [] });
             }
