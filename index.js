@@ -1,6 +1,8 @@
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
 const axios = require("axios");
 const crypto = require("crypto");
+const express = require("express");
+const bodyParser = require("body-parser");
 
 const ClientBot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
@@ -225,5 +227,69 @@ ClientBot.on("messageCreate", async message => {
         message.reply(`Added ${UserId} to the whitelist.`);
     }
 });
+
+const app = express();
+app.use(bodyParser.json());
+
+function auth(req, res, next) {
+    if (req.body.Auth !== API_KEY) return res.status(403).json({ error: "Unauthorized" });
+    next();
+}
+
+app.post("/promote/:groupId", auth, async (req, res) => {
+    const { groupId } = req.params;
+    const { UserId } = req.body;
+    if (!UserId) return res.status(400).json({ error: "Missing UserId" });
+
+    try {
+        const uid = String(UserId);
+        const currentRank = await GetCurrentRank(Number(groupId), uid);
+        const roles = await FetchRoles(Number(groupId));
+        const maxRank = Math.max(...Object.keys(roles).map(Number));
+        if (currentRank >= maxRank) return res.status(400).json({ error: "User is already at the highest rank" });
+
+        const newRank = currentRank + 1;
+        await SetRank(Number(groupId), uid, newRank, "API");
+        return res.json({ success: true, userId: uid, oldRank: currentRank, newRank });
+    } catch (err) {
+        console.error("Promote error:", err.response?.data || err.message);
+        return res.status(500).json({ error: err.message || "Unknown error" });
+    }
+});
+
+app.post("/demote/:groupId", auth, async (req, res) => {
+    const { groupId } = req.params;
+    const { UserId } = req.body;
+    if (!UserId) return res.status(400).json({ error: "Missing UserId" });
+
+    try {
+        const CurrentRank = await GetCurrentRank(Number(groupId), String(UserId));
+        const NewRank = Math.max(CurrentRank - 1, 1);
+        await SetRank(Number(groupId), String(UserId), NewRank, "API");
+        res.json({ success: true, userId: UserId, oldRank: CurrentRank, newRank: NewRank });
+    } catch (err) {
+        console.error("Demote error:", err.response?.data || err.message);
+        res.status(500).json({ error: err.message || "Unknown error" });
+    }
+});
+
+app.post("/setrank/:groupId", auth, async (req, res) => {
+    const { groupId } = req.params;
+    const { UserId, RankNumber } = req.body;
+    if (!UserId || !RankNumber) return res.status(400).json({ error: "Missing UserId or RankNumber" });
+
+    const rank = Number(RankNumber);
+    if (isNaN(rank)) return res.status(400).json({ error: "RankNumber must be a number" });
+
+    try {
+        await SetRank(Number(groupId), String(UserId), rank, "API");
+        res.json({ success: true, userId: UserId, newRank: rank });
+    } catch (err) {
+        console.error("SetRank error:", err.response?.data || err.message);
+        res.status(500).json({ error: err.message || "Unknown error" });
+    }
+});
+
+app.listen(API_PORT, () => { console.log(`Ranking API running on port ${API_PORT}`); });
 
 ClientBot.login(process.env.BOT_TOKEN);
