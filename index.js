@@ -3,6 +3,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const express = require("express");
 const bodyParser = require("body-parser");
+const API_PORT = process.env.PORT;
 
 const ClientBot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
