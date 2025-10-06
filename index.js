@@ -98,7 +98,10 @@ ClientBot.once("ready", async () => {
         new SlashCommandBuilder().setName("whois").setDescription("Lookup a Roblox user from a Discord user").addUserOption(opt => opt.setName("user").setDescription("The Discord user to look up").setRequired(false))
     ].map(cmd => cmd.toJSON());
     const Rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
-    await Rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: Commands });
+    const existingCommands = await Rest.get(Routes.applicationCommands(process.env.CLIENT_ID));
+    const existingNames = existingCommands.map(c => c.name);
+    const filteredCommands = Commands.filter(cmd => !existingNames.includes(cmd.name));
+    if (filteredCommands.length > 0) await Rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: [...existingCommands, ...filteredCommands] });
 });
 
 ClientBot.on("interactionCreate", async (Interaction) => {
@@ -218,7 +221,6 @@ ClientBot.on("messageCreate", async message => {
     const args = message.content.split(" ");
     const cmd = args[0].toLowerCase();
     if (![ADMIN_ID, APPROVER_ID].includes(message.author.id)) return;
-
     if (cmd === "!whitelist") {
         const UserId = args[1];
         const Db = await GetJsonBin();
@@ -241,14 +243,12 @@ app.post("/promote/:groupId", auth, async (req, res) => {
     const { groupId } = req.params;
     const { UserId } = req.body;
     if (!UserId) return res.status(400).json({ error: "Missing UserId" });
-
     try {
         const uid = String(UserId);
         const currentRank = await GetCurrentRank(Number(groupId), uid);
         const roles = await FetchRoles(Number(groupId));
         const maxRank = Math.max(...Object.keys(roles).map(Number));
         if (currentRank >= maxRank) return res.status(400).json({ error: "User is already at the highest rank" });
-
         const newRank = currentRank + 1;
         await SetRank(Number(groupId), uid, newRank, "API");
         return res.json({ success: true, userId: uid, oldRank: currentRank, newRank });
@@ -262,7 +262,6 @@ app.post("/demote/:groupId", auth, async (req, res) => {
     const { groupId } = req.params;
     const { UserId } = req.body;
     if (!UserId) return res.status(400).json({ error: "Missing UserId" });
-
     try {
         const CurrentRank = await GetCurrentRank(Number(groupId), String(UserId));
         const NewRank = Math.max(CurrentRank - 1, 1);
@@ -278,10 +277,8 @@ app.post("/setrank/:groupId", auth, async (req, res) => {
     const { groupId } = req.params;
     const { UserId, RankNumber } = req.body;
     if (!UserId || !RankNumber) return res.status(400).json({ error: "Missing UserId or RankNumber" });
-
     const rank = Number(RankNumber);
     if (isNaN(rank)) return res.status(400).json({ error: "RankNumber must be a number" });
-
     try {
         await SetRank(Number(groupId), String(UserId), rank, "API");
         res.json({ success: true, userId: UserId, newRank: rank });
