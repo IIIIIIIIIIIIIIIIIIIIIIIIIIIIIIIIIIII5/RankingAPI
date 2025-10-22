@@ -2,6 +2,8 @@ const { Client, GatewayIntentBits } = require("discord.js");
 const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
+const { getRobloxDescription } = require("./roblox");
+const { getJsonBin, saveJsonBin, logRankChange } = require("./utils");
 
 const ClientBot = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
