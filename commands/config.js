@@ -13,7 +13,7 @@ module.exports = {
             opt.setName("groupid").setDescription("The Roblox group ID to link to this server.").setRequired(true)
         ),
 
-    async execute(interaction, PendingApprovals) {
+    async execute(interaction, verifications, PendingApprovals) {
         if (!interaction.guild) {
             return interaction.reply({
                 content: "This command can only be used in a server, not in DMs.",
