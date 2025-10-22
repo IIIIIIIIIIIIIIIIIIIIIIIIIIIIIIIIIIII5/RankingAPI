@@ -3,11 +3,12 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
 
-const ClientBot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const ClientBot = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+});
+
 const verifications = {};
 const PendingApprovals = {};
-const { getRobloxDescription } = require("./roblox");
-const { getJsonBin, saveJsonBin, logRankChange } = require("./utils");
 
 require("./commands")(ClientBot);
 
@@ -21,7 +22,9 @@ ClientBot.on("interactionCreate", async interaction => {
             await command.execute(interaction, verifications, PendingApprovals, logRankChange);
         } catch (err) {
             console.error(err);
-            await interaction.reply({ content: "An error occurred.", ephemeral: true });
+            if (!interaction.replied) {
+                await interaction.reply({ content: "An error occurred.", ephemeral: true });
+            }
         }
     } else if (interaction.isButton()) {
         const [action, groupId] = interaction.customId.split("_");
@@ -29,6 +32,7 @@ ClientBot.on("interactionCreate", async interaction => {
         if (action === "done") {
             const Data = verifications[interaction.user.id];
             if (!Data) return interaction.reply({ content: "You haven't started verification yet.", ephemeral: true });
+
             const Description = await getRobloxDescription(Data.RobloxUserId);
             if (Description.includes(Data.Code)) {
                 const Db = await getJsonBin();
@@ -36,8 +40,28 @@ ClientBot.on("interactionCreate", async interaction => {
                 Db.VerifiedUsers[interaction.user.id] = Data.RobloxUserId;
                 await saveJsonBin(Db);
                 delete verifications[interaction.user.id];
-                interaction.reply({ content: `Verified! Linked to Roblox ID ${Data.RobloxUserId}`, ephemeral: true });
-            } else interaction.reply({ content: "Code not found in your profile. Make sure you added it and try again.", ephemeral: true });
+                return interaction.reply({ content: `Verified! Linked to Roblox ID ${Data.RobloxUserId}`, ephemeral: true });
+            } else {
+                return interaction.reply({ content: "Code not found in your profile. Make sure you added it and try again.", ephemeral: true });
+            }
+        }
+
+        if (action === "accept" || action === "decline") {
+            const pending = PendingApprovals[groupId];
+            if (!pending) {
+                return interaction.reply({ content: "No pending configuration found for this group ID.", ephemeral: true });
+            }
+
+            const requester = await ClientBot.users.fetch(pending.requesterId).catch(() => null);
+            delete PendingApprovals[groupId];
+
+            if (action === "accept") {
+                if (requester) await requester.send(`Your group configuration for ID ${groupId} has been approved.`);
+                return interaction.reply({ content: `Configuration for group ID ${groupId} has been approved.`, ephemeral: true });
+            } else {
+                if (requester) await requester.send(`Your group configuration for ID ${groupId} has been declined.`);
+                return interaction.reply({ content: `Configuration for group ID ${groupId} has been declined.`, ephemeral: true });
+            }
         }
     }
 });
