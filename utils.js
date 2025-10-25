@@ -14,7 +14,7 @@ const db = admin.firestore();
 
 async function getJsonBin() {
   try {
-    const doc = await db.collection("botData").doc("main").get();
+    const doc = await db.collection("rankChanges").doc("main").get();
     return doc.exists ? doc.data() : {};
   } catch {
     return {};
@@ -23,7 +23,7 @@ async function getJsonBin() {
 
 async function saveJsonBin(data) {
   try {
-    await db.collection("botData").doc("main").set(data, { merge: true });
+    await db.collection("rankChanges").doc("main").set(data, { merge: true });
   } catch (err) {
     console.error("Failed to save Firestore data:", err.message);
   }
