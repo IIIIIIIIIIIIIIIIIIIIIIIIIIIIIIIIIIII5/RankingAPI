@@ -11,6 +11,6 @@
     "discord.js": "^14.14.0",
     "express": "^4.19.2",
     "body-parser": "^1.20.2",
-    "firebase-admin": "^12.13.0"
+    "firebase-admin": "^13.2.0"
   }
 }
