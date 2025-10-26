@@ -1,4 +1,4 @@
-const { getJsonBin } = require("../utils");
+const { getJsonBin } = require("./utils");
 
 async function checkCommandRole(interaction, commandName) {
     const Db = await getJsonBin();
