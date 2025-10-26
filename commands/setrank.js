@@ -10,7 +10,7 @@ module.exports = {
         .addIntegerOption(opt => opt.setName("userid").setDescription("Roblox user ID").setRequired(true))
         .addIntegerOption(opt => opt.setName("rank").setDescription("Rank number").setRequired(true)),
 
-    async execute(interaction, logFunction) {
+    async execute(interaction, logFunction = null) {
         const allowed = await checkCommandRole(interaction, "setrank");
         if (!allowed) return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
 
@@ -22,7 +22,7 @@ module.exports = {
         const NewRank = interaction.options.getInteger("rank");
 
         try {
-            await setRank(GroupId, UserId, NewRank, interaction.user.username, logFunction);
+            await setRank(GroupId, UserId, NewRank, interaction.user.username, logFunction || (() => {}));
 
             const dateOnly = new Date().toISOString().split("T")[0];
             const Embed = new EmbedBuilder()
