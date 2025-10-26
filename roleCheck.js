@@ -8,3 +8,5 @@ async function checkCommandRole(interaction, commandName) {
     const roleId = guildConfig.CommandRoles[commandName];
     return interaction.member.roles.cache.has(roleId);
 }
+
+module.exports = { checkCommandRole };
