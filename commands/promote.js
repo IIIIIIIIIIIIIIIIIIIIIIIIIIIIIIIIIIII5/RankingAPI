@@ -1,7 +1,7 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const { getCurrentRank, setRank } = require("../roblox");
 const { getJsonBin } = require("../utils");
-const { checkCommandRole } = require("../utils/roleCheck");
+const { checkCommandRole } = require("../roleCheck");
 
 module.exports = {
     data: new SlashCommandBuilder()
