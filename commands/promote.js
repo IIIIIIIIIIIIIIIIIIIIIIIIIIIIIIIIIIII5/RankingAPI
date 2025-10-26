@@ -47,4 +47,10 @@ module.exports = {
             const ErrorEmbed = new EmbedBuilder()
                 .setColor(0xe74c3c)
                 .setTitle("Failed")
-                .setDescrip
+                .setDescription(err.message || "Unknown error")
+                .addFields({ name: "Date", value: dateOnly, inline: true });
+
+            await interaction.reply({ embeds: [ErrorEmbed] });
+        }
+    }
+};
