@@ -25,7 +25,7 @@ module.exports = {
             const { rankId, rankName } = await getCurrentRank(GroupId, userId);
             const nextRank = await getRankInfo(GroupId, rankId + 1);
 
-            if (!nextRank) return interaction.reply(`❌ ${username} is already at the highest rank.`);
+            if (!nextRank) return interaction.reply(`${username} is already at the highest rank.`);
 
             await setRank(GroupId, userId, nextRank.id, interaction.user.username, logFunction);
 
@@ -47,10 +47,4 @@ module.exports = {
             const ErrorEmbed = new EmbedBuilder()
                 .setColor(0xe74c3c)
                 .setTitle("Failed")
-                .setDescription(err.message || "Unknown error")
-                .addFields({ name: "Date", value: dateOnly, inline: true });
-
-            await interaction.reply({ embeds: [ErrorEmbed] });
-        }
-    }
-};
+                .setDescrip
