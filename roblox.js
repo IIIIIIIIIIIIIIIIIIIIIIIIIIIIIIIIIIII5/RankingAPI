@@ -70,10 +70,62 @@ async function getRobloxDescription(userId) {
     return res.data.description || "";
 }
 
+async function exileUser(groupId, userId) {
+    let xsrfToken = await getXsrfToken();
+    const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`;
+
+    try {
+        await axios.delete(url, {
+            headers: {
+                Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
+                "X-CSRF-TOKEN": xsrfToken
+            }
+        });
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await axios.delete(url, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
+                    "X-CSRF-TOKEN": xsrfToken
+                }
+            });
+        } else throw new Error(`Failed to exile user: ${err.response?.statusText || err.message}`);
+    }
+}
+
+async function setGroupShout(groupId, message) {
+    let xsrfToken = await getXsrfToken();
+    const url = `https://groups.roblox.com/v1/groups/${groupId}/status`;
+
+    try {
+        await axios.patch(url, { message }, {
+            headers: {
+                Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": xsrfToken
+            }
+        });
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await axios.patch(url, { message }, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": xsrfToken
+                }
+            });
+        } else throw new Error(`Failed to set shout: ${err.response?.statusText || err.message}`);
+    }
+}
+
 module.exports = {
     fetchRoles,
     getCurrentRank,
     setRank,
     getRobloxUserId,
-    getRobloxDescription
+    getRobloxDescription,
+    exileUser,
+    setGroupShout
 };
