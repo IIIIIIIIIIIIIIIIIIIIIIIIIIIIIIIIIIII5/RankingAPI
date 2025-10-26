@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { getJsonBin, saveJsonBin } = require("../utils");
-const { checkCommandRole } = require("./utils/roleCheck");
+const { checkCommandRole } = require("./roleCheck");
 
 const CONFIG_CHANNEL_ID = "1423685663642877993";
 
