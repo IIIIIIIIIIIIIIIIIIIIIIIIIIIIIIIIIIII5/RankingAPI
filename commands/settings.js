@@ -26,6 +26,8 @@ module.exports = {
 };
 
 module.exports.handleSelect = async (interaction) => {
+    await interaction.deferUpdate();
+    
     const Db = await getJsonBin();
     Db.ServerConfig = Db.ServerConfig || {};
     Db.ServerConfig[interaction.guild.id] = Db.ServerConfig[interaction.guild.id] || {};
