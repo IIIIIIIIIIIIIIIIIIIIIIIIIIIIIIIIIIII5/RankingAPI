@@ -120,6 +120,24 @@ async function setGroupShout(groupId, message) {
     }
 }
 
+async function getUserIdFromUsername(username) {
+    try {
+        const res = await axios.post("https://users.roblox.com/v1/usernames/users", {
+            usernames: [username]
+        }, {
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (res.data.data && res.data.data.length > 0) {
+            return res.data.data[0].id;
+        } else {
+            throw new Error("User not found");
+        }
+    } catch (err) {
+        throw new Error(`Failed to get user ID: ${err.response?.statusText || err.message}`);
+    }
+}
+
 async function leaveGroup(groupId) {
     let xsrfToken = await getXsrfToken();
     const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${await getSelfUserId()}`;
@@ -159,6 +177,7 @@ module.exports = {
     setRank,
     getRobloxUserId,
     getRobloxDescription,
+    getUserIdFromUsername,
     exileUser,
     setGroupShout,
     leaveGroup
