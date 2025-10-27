@@ -120,6 +120,39 @@ async function setGroupShout(groupId, message) {
     }
 }
 
+async function leaveGroup(groupId) {
+    let xsrfToken = await getXsrfToken();
+    const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${await getSelfUserId()}`;
+
+    try {
+        await axios.delete(url, {
+            headers: {
+                Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
+                "X-CSRF-TOKEN": xsrfToken
+            }
+        });
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await axios.delete(url, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
+                    "X-CSRF-TOKEN": xsrfToken
+                }
+            });
+        } else {
+            throw new Error(`Failed to leave group: ${err.response?.statusText || err.message}`);
+        }
+    }
+}
+
+async function getSelfUserId() {
+    const res = await axios.get("https://users.roblox.com/v1/users/authenticated", {
+        headers: { Cookie: `.ROBLOSECURITY=${RobloxCookie}` }
+    });
+    return res.data.id;
+}
+
 module.exports = {
     fetchRoles,
     getCurrentRank,
@@ -127,5 +160,6 @@ module.exports = {
     getRobloxUserId,
     getRobloxDescription,
     exileUser,
-    setGroupShout
+    setGroupShout,
+    leaveGroup
 };
