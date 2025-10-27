@@ -1,4 +1,5 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+// index.js
+const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
@@ -20,11 +21,58 @@ ClientBot.on("interactionCreate", async interaction => {
     if (interaction.isChatInputCommand()) {
         const command = ClientBot.commands.get(interaction.commandName);
         if (!command) return;
+
         try {
             await command.execute(interaction, verifications, PendingApprovals, logRankChange);
         } catch (err) {
             console.error(err);
             if (!interaction.replied) await interaction.reply({ content: "An error occurred.", ephemeral: true });
+        }
+    } else if (interaction.isStringSelectMenu()) {
+        await interaction.deferUpdate();
+        const Db = await getJsonBin();
+        Db.ServerConfig = Db.ServerConfig || {};
+        Db.ServerConfig[interaction.guild.id] = Db.ServerConfig[interaction.guild.id] || {};
+
+        if (interaction.customId === "settings_type") {
+            if (interaction.values[0] === "role_permissions") {
+                const roleMenu = new StringSelectMenuBuilder()
+                    .setCustomId("set_role")
+                    .setPlaceholder("Select a role for command access")
+                    .addOptions(interaction.guild.roles.cache.map(r => ({ label: r.name, value: r.id })).slice(0, 25));
+
+                const row = new ActionRowBuilder().addComponents(roleMenu);
+                return interaction.editReply({ content: "Select a role to allow command access:", components: [row] });
+            }
+
+            if (interaction.values[0] === "logging_channel") {
+                const channelMenu = new StringSelectMenuBuilder()
+                    .setCustomId("set_logging")
+                    .setPlaceholder("Select a logging channel")
+                    .addOptions(interaction.guild.channels.cache.filter(c => c.isTextBased()).map(c => ({ label: c.name, value: c.id })).slice(0, 25));
+
+                const row = new ActionRowBuilder().addComponents(channelMenu);
+                return interaction.editReply({ content: "Select a channel for logging:", components: [row] });
+            }
+        }
+
+        if (interaction.customId === "set_role") {
+            const selectedRoleId = interaction.values[0];
+            Db.ServerConfig[interaction.guild.id].CommandRoles = {
+                promote: selectedRoleId,
+                demote: selectedRoleId,
+                setrank: selectedRoleId,
+                config: selectedRoleId
+            };
+            await saveJsonBin(Db);
+            return interaction.editReply({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [] });
+        }
+
+        if (interaction.customId === "set_logging") {
+            const selectedChannelId = interaction.values[0];
+            Db.ServerConfig[interaction.guild.id].LoggingChannel = selectedChannelId;
+            await saveJsonBin(Db);
+            return interaction.editReply({ content: `Logging channel is now set to <#${selectedChannelId}>.`, components: [] });
         }
     } else if (interaction.isButton()) {
         const [action, type, groupIdRaw] = interaction.customId.split("_");
