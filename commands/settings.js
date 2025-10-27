@@ -7,8 +7,9 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
+        const timestamp = Date.now();
         const settingsSelect = new StringSelectMenuBuilder()
-            .setCustomId("settings_type")
+            .setCustomId(`settings_type_${timestamp}`)
             .setPlaceholder("Select a setting to configure")
             .addOptions([
                 { label: "⚒️ Role Permissions", value: "role_permissions", description: "Manage command access roles" },
