@@ -15,6 +15,6 @@ module.exports = {
             ]);
 
         const row = new ActionRowBuilder().addComponents(settingsSelect);
-        await interaction.reply({ content: "Select a setting to configure:", components: [row], ephemeral: true });
+        await interaction.reply({ content: "Select a setting to configure:", components: [row], ephemeral: false });
     }
 };
