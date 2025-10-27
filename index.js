@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
@@ -44,20 +44,23 @@ ClientBot.on("interactionCreate", async interaction => {
             } else return interaction.reply({ content: "Code not found in your profile. Make sure you added it and try again.", ephemeral: true });
         }
 
-        if (action === "accept" || action === "decline") {
+        if ((action === "accept" || action === "decline") && type !== "remove") {
             const pending = PendingApprovals[groupId];
             if (!pending) return interaction.reply({ content: "No pending configuration found for this group ID.", ephemeral: true });
             const requester = await ClientBot.users.fetch(pending.requesterId).catch(() => null);
             delete PendingApprovals[groupId];
+            const Row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId("dummy").setLabel("Processed").setStyle(ButtonStyle.Secondary).setDisabled(true)
+            );
             if (action === "accept") {
                 if (requester) await requester.send(`Your group configuration for ID ${groupId} has been approved.`);
-                return interaction.reply({ content: `Configuration for group ID ${groupId} has been approved.`, ephemeral: true });
+                return interaction.update({ content: `Configuration for group ID ${groupId} has been approved.`, components: [Row] });
             } else {
                 if (requester) await requester.send(`Your group configuration for ID ${groupId} has been declined.`);
                 const Db = await getJsonBin();
                 if (Db.ServerConfig?.[pending.guildId]) delete Db.ServerConfig[pending.guildId];
                 await saveJsonBin(Db);
-                return interaction.reply({ content: `Configuration for group ID ${groupId} has been declined.`, ephemeral: true });
+                return interaction.update({ content: `Configuration for group ID ${groupId} has been declined.`, components: [Row] });
             }
         }
 
@@ -66,16 +69,19 @@ ClientBot.on("interactionCreate", async interaction => {
             if (!pending) return interaction.reply({ content: "No pending removal found for this group ID.", ephemeral: true });
             const requester = await ClientBot.users.fetch(pending.requesterId).catch(() => null);
             delete PendingApprovals[groupId];
+            const Row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId("dummy").setLabel("Processed").setStyle(ButtonStyle.Secondary).setDisabled(true)
+            );
             if (type === "accept") {
                 const Db = await getJsonBin();
                 if (Db.ServerConfig?.[pending.guildId]) delete Db.ServerConfig[pending.guildId];
                 await saveJsonBin(Db);
                 await leaveGroup(groupId);
                 if (requester) await requester.send(`Your group removal request has been approved and your linked group for the server ${pending.guildId} has been removed. All server data has been cleared.`);
-                return interaction.reply({ content: `Group configuration for ID ${groupId} has been removed and the bot has left the group.`, ephemeral: true });
+                return interaction.update({ content: `Group configuration for ID ${groupId} has been removed and the bot has left the group.`, components: [Row] });
             } else {
                 if (requester) await requester.send(`Your group removal request has been declined and your linked group for the server ${pending.guildId} has not been removed.`);
-                return interaction.reply({ content: `Group removal request for ID ${groupId} has been declined.`, ephemeral: true });
+                return interaction.update({ content: `Group removal request for ID ${groupId} has been declined.`, components: [Row] });
             }
         }
     }
