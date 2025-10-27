@@ -38,7 +38,7 @@ module.exports.handleSelect = async (interaction) => {
                 .addOptions(interaction.guild.roles.cache.map(r => ({ label: r.name, value: r.id })).slice(0, 25));
 
             const row = new ActionRowBuilder().addComponents(roleMenu);
-            return interaction.update({ content: "Select a role to allow command access:", components: [row] });
+            return interaction.update({ content: "Select a role to allow command access:", components: [row], ephemeral: true });
 
         } else if (interaction.values[0] === "logging_channel") {
             const channelMenu = new StringSelectMenuBuilder()
@@ -47,7 +47,7 @@ module.exports.handleSelect = async (interaction) => {
                 .addOptions(interaction.guild.channels.cache.filter(c => c.isTextBased()).map(c => ({ label: c.name, value: c.id })).slice(0, 25));
 
             const row = new ActionRowBuilder().addComponents(channelMenu);
-            return interaction.update({ content: "Select a channel for logging:", components: [row] });
+            return interaction.update({ content: "Select a channel for logging:", components: [row], ephemeral: true });
         }
     }
 
@@ -60,13 +60,13 @@ module.exports.handleSelect = async (interaction) => {
             config: selectedRoleId
         };
         await saveJsonBin(Db);
-        return interaction.update({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [] });
+        return interaction.update({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [], ephemeral: true });
     }
 
     if (interaction.customId === "set_logging") {
         const selectedChannelId = interaction.values[0];
         Db.ServerConfig[interaction.guild.id].LoggingChannel = selectedChannelId;
         await saveJsonBin(Db);
-        return interaction.update({ content: `Logging channel is now set to <#${selectedChannelId}>.`, components: [] });
+        return interaction.update({ content: `Logging channel is now set to <#${selectedChannelId}>.`, components: [], ephemeral: true });
     }
 };
