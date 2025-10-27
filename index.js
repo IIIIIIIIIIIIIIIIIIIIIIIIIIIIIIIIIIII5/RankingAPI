@@ -29,14 +29,20 @@ ClientBot.on("interactionCreate", async interaction => {
         }
 
     } else if (interaction.isStringSelectMenu()) {
+        const idParts = interaction.customId.split("_");
+        const timestamp = parseInt(idParts[idParts.length - 1], 10);
+        if (Date.now() - timestamp > 60_000) {
+            return interaction.reply({ content: "This selection has expired. Please run the settings command again.", ephemeral: true });
+        }
+
         const Db = await getJsonBin();
         Db.ServerConfig = Db.ServerConfig || {};
         Db.ServerConfig[interaction.guild.id] = Db.ServerConfig[interaction.guild.id] || {};
 
-        if (interaction.customId === "settings_type") {
+        if (interaction.customId.startsWith("settings_type")) {
             if (interaction.values[0] === "role_permissions") {
                 const roleMenu = new StringSelectMenuBuilder()
-                    .setCustomId("set_role")
+                    .setCustomId(`set_role_${timestamp}`)
                     .setPlaceholder("Select a role for command access")
                     .addOptions(interaction.guild.roles.cache.map(r => ({ label: r.name, value: r.id })).slice(0, 25));
                 const row = new ActionRowBuilder().addComponents(roleMenu);
@@ -44,7 +50,7 @@ ClientBot.on("interactionCreate", async interaction => {
             }
             if (interaction.values[0] === "logging_channel") {
                 const channelMenu = new StringSelectMenuBuilder()
-                    .setCustomId("set_logging")
+                    .setCustomId(`set_logging_${timestamp}`)
                     .setPlaceholder("Select a logging channel")
                     .addOptions(interaction.guild.channels.cache.filter(c => c.isTextBased()).map(c => ({ label: c.name, value: c.id })).slice(0, 25));
                 const row = new ActionRowBuilder().addComponents(channelMenu);
@@ -52,7 +58,7 @@ ClientBot.on("interactionCreate", async interaction => {
             }
         }
 
-        if (interaction.customId === "set_role") {
+        if (interaction.customId.startsWith("set_role")) {
             const selectedRoleId = interaction.values[0];
             Db.ServerConfig[interaction.guild.id].CommandRoles = {
                 promote: selectedRoleId,
@@ -64,7 +70,7 @@ ClientBot.on("interactionCreate", async interaction => {
             return interaction.update({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [] });
         }
 
-        if (interaction.customId === "set_logging") {
+        if (interaction.customId.startsWith("set_logging")) {
             const selectedChannelId = interaction.values[0];
             Db.ServerConfig[interaction.guild.id].LoggingChannel = selectedChannelId;
             await saveJsonBin(Db);
