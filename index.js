@@ -17,7 +17,6 @@ require("./commands")(ClientBot);
 ClientBot.once("ready", () => console.log("Bot is ready!"));
 
 ClientBot.on("interactionCreate", async interaction => {
-
     if (interaction.isChatInputCommand()) {
         const command = ClientBot.commands.get(interaction.commandName);
         if (!command) return;
@@ -31,9 +30,8 @@ ClientBot.on("interactionCreate", async interaction => {
     } else if (interaction.isStringSelectMenu()) {
         const idParts = interaction.customId.split("_");
         const timestamp = parseInt(idParts[idParts.length - 1], 10);
-        if (Date.now() - timestamp > 60_000) {
+        if (Date.now() - timestamp > 60_000)
             return interaction.reply({ content: "This selection has expired. Please run the settings command again.", ephemeral: true });
-        }
 
         const Db = await getJsonBin();
         Db.ServerConfig = Db.ServerConfig || {};
@@ -103,13 +101,13 @@ ClientBot.on("interactionCreate", async interaction => {
             delete PendingApprovals[groupId];
             if (action === "accept") {
                 if (requester) await requester.send(`Your group configuration for ID ${groupId} has been approved.`);
-                return interaction.reply({ content: `Configuration for group ID ${groupId} has been approved.`, ephemeral: true, components: [] });
+                await interaction.update({ content: `Configuration for group ID ${groupId} has been approved.`, components: [] });
             } else {
                 if (requester) await requester.send(`Your group configuration for ID ${groupId} has been declined.`);
                 const Db = await getJsonBin();
                 if (Db.ServerConfig?.[pending.guildId]) delete Db.ServerConfig[pending.guildId];
                 await saveJsonBin(Db);
-                return interaction.reply({ content: `Configuration for group ID ${groupId} has been declined.`, ephemeral: true, components: [] });
+                await interaction.update({ content: `Configuration for group ID ${groupId} has been declined.`, components: [] });
             }
         }
 
@@ -124,10 +122,10 @@ ClientBot.on("interactionCreate", async interaction => {
                 await saveJsonBin(Db);
                 await leaveGroup(groupId);
                 if (requester) await requester.send(`Your group removal request has been approved and your linked group for the server ${pending.guildId} has been removed. All server data has been cleared.`);
-                return interaction.reply({ content: `Group configuration for ID ${groupId} has been removed and the bot has left the group.`, ephemeral: true, components: [] });
+                await interaction.update({ content: `Group configuration for ID ${groupId} has been removed and the bot has left the group.`, components: [] });
             } else {
                 if (requester) await requester.send(`Your group removal request has been declined and your linked group for the server ${pending.guildId} has not been removed.`);
-                return interaction.reply({ content: `Group removal request for ID ${groupId} has been declined.`, ephemeral: true, components: [] });
+                await interaction.update({ content: `Group removal request for ID ${groupId} has been declined.`, components: [] });
             }
         }
     }
