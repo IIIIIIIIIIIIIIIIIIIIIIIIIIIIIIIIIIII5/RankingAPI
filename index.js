@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits } = require("discord.js");
 const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
-const { getRobloxDescription } = require("./roblox");
+const { getRobloxDescription, leaveGroup } = require("./roblox");
 const { getJsonBin, saveJsonBin, logRankChange } = require("./utils");
 
 const ClientBot = new Client({
@@ -70,10 +70,11 @@ ClientBot.on("interactionCreate", async interaction => {
                 const Db = await getJsonBin();
                 if (Db.ServerConfig?.[pending.guildId]) delete Db.ServerConfig[pending.guildId];
                 await saveJsonBin(Db);
-                if (requester) await requester.send(`Your group removal request for ID ${groupId} has been approved and removed.`);
-                return interaction.reply({ content: `Group configuration for ID ${groupId} has been removed.`, ephemeral: true });
+                await leaveGroup(groupId);
+                if (requester) await requester.send(`Your group removal request has been approved and your linked group for the server ${pending.guildId} has been removed. All server data has been cleared.`);
+                return interaction.reply({ content: `Group configuration for ID ${groupId} has been removed and the bot has left the group.`, ephemeral: true });
             } else {
-                if (requester) await requester.send(`Your group removal request for ID ${groupId} has been declined.`);
+                if (requester) await requester.send(`Your group removal request has been declined and your linked group for the server ${pending.guildId} has not been removed.`);
                 return interaction.reply({ content: `Group removal request for ID ${groupId} has been declined.`, ephemeral: true });
             }
         }
