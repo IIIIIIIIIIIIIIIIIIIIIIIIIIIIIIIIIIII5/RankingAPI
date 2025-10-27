@@ -94,6 +94,17 @@ async function exileUser(groupId, userId) {
     }
 }
 
+async function getRankNameFromId(groupId, rankId) {
+    try {
+        const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
+        const role = res.data.roles.find(r => r.id === rankId);
+        if (!role) throw new Error("Rank not found");
+        return role.name;
+    } catch (err) {
+        throw new Error(`Failed to get rank name: ${err.response?.statusText || err.message}`);
+    }
+}
+
 async function setGroupShout(groupId, message) {
     let xsrfToken = await getXsrfToken();
     const url = `https://groups.roblox.com/v1/groups/${groupId}/status`;
@@ -176,6 +187,7 @@ module.exports = {
     getCurrentRank,
     setRank,
     getRobloxUserId,
+    getRankNameFromId,
     getRobloxDescription,
     getUserIdFromUsername,
     exileUser,
