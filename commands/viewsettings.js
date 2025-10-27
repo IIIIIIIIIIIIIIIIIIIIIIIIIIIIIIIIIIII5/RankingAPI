@@ -39,13 +39,13 @@ module.exports = {
             embed.addFields({
                 name: "📊 Logging Channel",
                 value: `<#${config.LoggingChannel}>`,
-                inline: true
+                inline: false
             });
         } else {
             embed.addFields({
                 name: "📊 Logging Channel",
                 value: "You have not set up a Logging Channel. Use `/settings` to set it up.",
-                inline: true
+                inline: false
             });
         }
 
