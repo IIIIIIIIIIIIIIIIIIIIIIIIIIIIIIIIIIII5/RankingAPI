@@ -16,8 +16,8 @@ require("./commands")(ClientBot);
 
 ClientBot.once("ready", () => {
     console.log("Bot is ready!");
-    client.updateActivity();
-    setInterval(() => client.updateActivity(), 60000);
+    ClientBot.updateActivity();
+    setInterval(() => ClientBot.updateActivity(), 60000);
 });
 
 ClientBot.on("interactionCreate", async interaction => {
