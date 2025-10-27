@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { REST, Routes } = require("discord.js");
+const { REST, Routes, ActivityType } = require("discord.js");
 
 module.exports = async (client) => {
     const commands = [];
@@ -15,8 +15,13 @@ module.exports = async (client) => {
         commands.push(command.data.toJSON());
     }
   
-  const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
+    const rest = new REST({ version: "10" }).setToken(process.env.BOT_TOKEN);
     await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
 
     console.log(`Loaded ${commands.length} commands.`);
+
+    client.updateActivity = () => {
+        const servercount = client.guilds.cache.size;
+        client.user.setActivity(`${servercount} servers`, { type: ActivityType.Watching });
+    };
 };
