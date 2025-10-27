@@ -1,10 +1,9 @@
-// index.js
 const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
+const { getJsonBin, saveJsonBin } = require("./utils");
 const { getRobloxDescription, leaveGroup } = require("./roblox");
-const { getJsonBin, saveJsonBin, logRankChange } = require("./utils");
 
 const ClientBot = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -18,16 +17,18 @@ require("./commands")(ClientBot);
 ClientBot.once("ready", () => console.log("Bot is ready!"));
 
 ClientBot.on("interactionCreate", async interaction => {
+
     if (interaction.isChatInputCommand()) {
         const command = ClientBot.commands.get(interaction.commandName);
         if (!command) return;
 
         try {
-            await command.execute(interaction, verifications, PendingApprovals, logRankChange);
+            await command.execute(interaction, verifications, PendingApprovals);
         } catch (err) {
             console.error(err);
             if (!interaction.replied) await interaction.reply({ content: "An error occurred.", ephemeral: true });
         }
+
     } else if (interaction.isStringSelectMenu()) {
         await interaction.deferUpdate();
         const Db = await getJsonBin();
@@ -42,7 +43,7 @@ ClientBot.on("interactionCreate", async interaction => {
                     .addOptions(interaction.guild.roles.cache.map(r => ({ label: r.name, value: r.id })).slice(0, 25));
 
                 const row = new ActionRowBuilder().addComponents(roleMenu);
-                return interaction.editReply({ content: "Select a role to allow command access:", components: [row] });
+                return interaction.channel.send({ content: "Select a role to allow command access:", components: [row] });
             }
 
             if (interaction.values[0] === "logging_channel") {
@@ -52,7 +53,7 @@ ClientBot.on("interactionCreate", async interaction => {
                     .addOptions(interaction.guild.channels.cache.filter(c => c.isTextBased()).map(c => ({ label: c.name, value: c.id })).slice(0, 25));
 
                 const row = new ActionRowBuilder().addComponents(channelMenu);
-                return interaction.editReply({ content: "Select a channel for logging:", components: [row] });
+                return interaction.channel.send({ content: "Select a channel for logging:", components: [row] });
             }
         }
 
@@ -65,16 +66,18 @@ ClientBot.on("interactionCreate", async interaction => {
                 config: selectedRoleId
             };
             await saveJsonBin(Db);
-            return interaction.editReply({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [] });
+            return interaction.channel.send({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [] });
         }
 
         if (interaction.customId === "set_logging") {
             const selectedChannelId = interaction.values[0];
             Db.ServerConfig[interaction.guild.id].LoggingChannel = selectedChannelId;
             await saveJsonBin(Db);
-            return interaction.editReply({ content: `Logging channel is now set to <#${selectedChannelId}>.`, components: [] });
+            return interaction.channel.send({ content: `Logging channel is now set to <#${selectedChannelId}>.`, components: [] });
         }
-    } else if (interaction.isButton()) {
+    }
+
+    if (interaction.isButton()) {
         const [action, type, groupIdRaw] = interaction.customId.split("_");
         const groupId = groupIdRaw || type;
 
