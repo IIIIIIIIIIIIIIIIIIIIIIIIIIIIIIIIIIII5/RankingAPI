@@ -14,7 +14,11 @@ const PendingApprovals = {};
 
 require("./commands")(ClientBot);
 
-ClientBot.once("ready", () => console.log("Bot is ready!"));
+ClientBot.once("ready", () => {
+    console.log("Bot is ready!");
+    client.updateActivity();
+    setInterval(() => client.updateActivity(), 60000);
+});
 
 ClientBot.on("interactionCreate", async interaction => {
     if (interaction.isChatInputCommand()) {
