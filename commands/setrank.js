@@ -24,11 +24,11 @@ module.exports = {
 
         try {
             const userId = await getUserIdFromUsername(username);
-            const rankId = await getRankIdFromName(GroupId, rankName);
-            if (!rankId) return interaction.reply(`Rank "${rankName}" not found in the group.`);
+            const roleId = await getRankIdFromName(GroupId, rankName);
+            if (!roleId) return interaction.reply(`Rank "${rankName}" not found in the group.`);
 
             const safeLogFunction = typeof logFunction === "function" ? logFunction : () => {};
-            await setRank(GroupId, userId, rankId, interaction.user.username, safeLogFunction);
+            await setRank(GroupId, userId, roleId, interaction.user.username, safeLogFunction);
 
             const dateOnly = new Date().toISOString().split("T")[0];
             const Embed = new EmbedBuilder()
