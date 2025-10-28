@@ -1,5 +1,5 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { getCurrentRank, setRank, getRankInfo, getUserIdFromUsername } = require("../roblox");
+const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
+const { getCurrentRank, getPreviousRank, setRank, getUserIdFromUsername } = require("../roblox");
 const { getJsonBin } = require("../utils");
 const { checkCommandRole } = require("../roleCheck");
 
@@ -22,8 +22,8 @@ module.exports = {
 
         try {
             const userId = await getUserIdFromUsername(username);
-            const { rankId, rankName } = await getCurrentRank(GroupId, userId);
-            const lowerRank = await getRankInfo(GroupId, rankId - 1);
+            const currentRank = await getCurrentRank(GroupId, userId);
+            const lowerRank = await getPreviousRank(GroupId, currentRank);
 
             if (!lowerRank) return interaction.reply(`${username} is already at the lowest rank.`);
 
