@@ -28,6 +28,8 @@ async function getCurrentRank(groupId, userId) {
 }
 
 async function setRank(groupId, userId, roleId, issuer, logFunction) {
+    if (!roleId) throw new Error("Missing roleId");
+
     let xsrfToken = await getXsrfToken();
     const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`;
 
