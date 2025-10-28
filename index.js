@@ -25,7 +25,7 @@ ClientBot.on("guildDelete", () => ClientBot.updateActivity());
 
 ClientBot.updateActivity = function () {
     const count = this.guilds.cache.size;
-    this.user.setActivity(`Watching ${count} servers`, { type: ActivityType.Watching });
+    this.user.setActivity(`${count} servers`, { type: ActivityType.Watching });
 };
 
 ClientBot.on("interactionCreate", async interaction => {
