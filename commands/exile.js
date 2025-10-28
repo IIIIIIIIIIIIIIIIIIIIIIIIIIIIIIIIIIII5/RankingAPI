@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { exileUser, getRobloxUserId } = require("../roblox");
-const { getJsonBin } = require("../utils");
+const { exileUser, getUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
+const { logAction } = require("../logging");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,38 +12,39 @@ module.exports = {
 
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "exile");
-        if (!allowed)
-            return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
-
-        const db = await getJsonBin();
-        if (!db.ServerConfig?.[interaction.guild.id])
-            return interaction.reply({ content: "Group ID not set. Run /config first.", ephemeral: true });
-
-        const groupId = db.ServerConfig[interaction.guild.id].GroupId;
-        const username = interaction.options.getString("username");
-        const reason = interaction.options.getString("reason") || "No reason provided.";
+        if (!allowed) return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
 
         try {
-            const userId = await getRobloxUserId(username);
-            await exileUser(groupId, userId);
+            const username = interaction.options.getString("username");
+            const reason = interaction.options.getString("reason") || "No reason provided.";
+            const userId = await getUserIdFromUsername(username);
+            const Db = await require("../utils").getJsonBin();
+            const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
+
+            await exileUser(GroupId, userId);
 
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
                 .setTitle("User Exiled")
                 .addFields(
                     { name: "Username", value: username, inline: true },
-                    { name: "Group ID", value: String(groupId), inline: true },
+                    { name: "Group ID", value: String(GroupId), inline: true },
                     { name: "Reason", value: reason, inline: true },
                     { name: "Issued By", value: interaction.user.tag, inline: true },
                     { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                 );
 
             await interaction.reply({ embeds: [embed] });
+            await logAction(interaction, embed);
         } catch (err) {
-            await interaction.reply({
-                content: `Failed to exile user: ${err.message || "Unknown error"}`,
-                ephemeral: true
-            });
+            const embed = new EmbedBuilder()
+                .setColor(0xe74c3c)
+                .setTitle("Failed")
+                .setDescription(err.message || "Unknown error")
+                .addFields({ name: "Date", value: new Date().toISOString().split("T")[0], inline: true });
+
+            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await logAction(interaction, embed);
         }
     }
 };
