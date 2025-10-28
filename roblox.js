@@ -94,14 +94,16 @@ async function exileUser(groupId, userId) {
     }
 }
 
-async function getRankNameFromId(groupId, rankId) {
+async function getRankIdFromName(groupId, rankName) {
     try {
         const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
-        const role = res.data.roles.find(r => r.id === rankId);
-        if (!role) throw new Error("Rank not found");
-        return role.name;
+        const normalized = rankName.trim().toLowerCase();
+        const role = res.data.roles.find(r => r.name.toLowerCase() === normalized);
+
+        if (!role) throw new Error(`Rank "${rankName}" not found in the group.`);
+        return role.id;
     } catch (err) {
-        throw new Error(`Failed to get rank name: ${err.response?.statusText || err.message}`);
+        throw new Error(`Failed to get rank ID: ${err.response?.statusText || err.message}`);
     }
 }
 
