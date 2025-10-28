@@ -29,7 +29,7 @@ async function getCurrentRank(groupId, userId) {
 
 async function setRank(groupId, userId, rankNumber, issuer, logFunction) {
     const roles = await fetchRoles(groupId);
-    const roleInfo = roles[rankNumber];
+    const roleInfo = Object.values(roles).find(r => r.id === rankNumber || r.rank === rankNumber);
     if (!roleInfo) throw new Error("Invalid rank number: " + rankNumber);
 
     let xsrfToken = await getXsrfToken();
@@ -56,7 +56,9 @@ async function setRank(groupId, userId, rankNumber, issuer, logFunction) {
         } else throw err;
     }
 
-    if (logFunction) await logFunction(groupId, userId, roleInfo, issuer);
+    if (typeof logFunction === "function") {
+        await logFunction(groupId, userId, roleInfo, issuer);
+    }
 }
 
 async function getRobloxUserId(username) {
@@ -99,9 +101,8 @@ async function getRankIdFromName(groupId, rankName) {
         const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
         const normalized = rankName.trim().toLowerCase();
         const role = res.data.roles.find(r => r.name.toLowerCase() === normalized);
-
         if (!role) throw new Error(`Rank "${rankName}" not found in the group.`);
-        return role.rank;
+        return role.id;
     } catch (err) {
         throw new Error(`Failed to get rank ID: ${err.response?.statusText || err.message}`);
     }
@@ -140,7 +141,6 @@ async function getUserIdFromUsername(username) {
         }, {
             headers: { "Content-Type": "application/json" }
         });
-
         if (res.data.data && res.data.data.length > 0) {
             return res.data.data[0].id;
         } else {
