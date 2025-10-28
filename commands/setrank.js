@@ -24,7 +24,7 @@ module.exports = {
 
         try {
             const userId = await getUserIdFromUsername(username);
-            const rankId = await getRankNameFromId(GroupId, rankName);
+            const rankId = await getRankIdFromName(GroupId, rankName);
 
             if (!rankId) return interaction.reply(`Rank "${rankName}" not found in the group.`);
 
