@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder, ActivityType } = require("discord.js");
 const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
@@ -19,6 +19,14 @@ ClientBot.once("ready", () => {
     ClientBot.updateActivity();
     setInterval(() => ClientBot.updateActivity(), 60000);
 });
+
+ClientBot.on("guildCreate", () => ClientBot.updateActivity());
+ClientBot.on("guildDelete", () => ClientBot.updateActivity());
+
+ClientBot.updateActivity = function () {
+    const count = this.guilds.cache.size;
+    this.user.setActivity(`Watching ${count} servers`, { type: ActivityType.Watching });
+};
 
 ClientBot.on("interactionCreate", async interaction => {
     if (interaction.isChatInputCommand()) {
