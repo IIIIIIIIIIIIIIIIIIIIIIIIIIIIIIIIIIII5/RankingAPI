@@ -101,7 +101,7 @@ async function getRankIdFromName(groupId, rankName) {
         const role = res.data.roles.find(r => r.name.toLowerCase() === normalized);
 
         if (!role) throw new Error(`Rank "${rankName}" not found in the group.`);
-        return role.id;
+        return role.rank;
     } catch (err) {
         throw new Error(`Failed to get rank ID: ${err.response?.statusText || err.message}`);
     }
