@@ -19,9 +19,4 @@ module.exports = async (client) => {
     await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
 
     console.log(`Loaded ${commands.length} commands.`);
-
-    client.updateActivity = () => {
-        const servercount = client.guilds.cache.size;
-        client.user.setActivity(`${servercount} servers`, { type: ActivityType.Watching });
-    };
 };
