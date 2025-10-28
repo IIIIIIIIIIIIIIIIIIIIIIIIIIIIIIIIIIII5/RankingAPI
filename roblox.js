@@ -20,6 +20,13 @@ async function fetchRoles(groupId) {
     return roles;
 }
 
+async function getRankInfo(groupId, rankId) {
+    const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
+    const role = res.data.roles.find(r => r.id === rankId);
+    if (!role) return null;
+    return { id: role.id, name: role.name, rank: role.rank };
+}
+
 async function getCurrentRank(groupId, userId) {
     const res = await axios.get(`https://groups.roblox.com/v2/users/${userId}/groups/roles`);
     const groupData = res.data.data.find(g => g.group.id === groupId);
@@ -186,6 +193,7 @@ module.exports = {
     setRank,
     getRobloxUserId,
     getRankIdFromName,
+    getRankInfo,
     getRobloxDescription,
     getUserIdFromUsername,
     exileUser,
