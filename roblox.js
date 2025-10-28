@@ -189,7 +189,7 @@ module.exports = {
     getCurrentRank,
     setRank,
     getRobloxUserId,
-    getRankNameFromId,
+    getRankIdFromName,
     getRobloxDescription,
     getUserIdFromUsername,
     exileUser,
