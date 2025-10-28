@@ -27,16 +27,12 @@ async function getCurrentRank(groupId, userId) {
     return groupData.role.rank;
 }
 
-async function setRank(groupId, userId, rankNumber, issuer, logFunction) {
-    const roles = await fetchRoles(groupId);
-    const roleInfo = Object.values(roles).find(r => r.id === rankNumber || r.rank === rankNumber);
-    if (!roleInfo) throw new Error("Invalid rank number: " + rankNumber);
-
+async function setRank(groupId, userId, roleId, issuer, logFunction) {
     let xsrfToken = await getXsrfToken();
     const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`;
 
     try {
-        await axios.patch(url, { roleId: roleInfo.id }, {
+        await axios.patch(url, { roleId }, {
             headers: {
                 Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
                 "Content-Type": "application/json",
@@ -46,7 +42,7 @@ async function setRank(groupId, userId, rankNumber, issuer, logFunction) {
     } catch (err) {
         if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
             xsrfToken = err.response.headers["x-csrf-token"];
-            await axios.patch(url, { roleId: roleInfo.id }, {
+            await axios.patch(url, { roleId }, {
                 headers: {
                     Cookie: `.ROBLOSECURITY=${RobloxCookie}`,
                     "Content-Type": "application/json",
@@ -56,9 +52,7 @@ async function setRank(groupId, userId, rankNumber, issuer, logFunction) {
         } else throw err;
     }
 
-    if (typeof logFunction === "function") {
-        await logFunction(groupId, userId, roleInfo, issuer);
-    }
+    if (typeof logFunction === "function") await logFunction(groupId, userId, { id: roleId }, issuer);
 }
 
 async function getRobloxUserId(username) {
