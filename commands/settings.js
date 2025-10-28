@@ -15,6 +15,7 @@ module.exports = {
                 { label: "⚒️ Role Permissions", value: "role_permissions", description: "Manage command access roles" },
                 { label: "📊 Logging Channel", value: "logging_channel", description: "Set channel to log ranking actions" }
             ]);
+
         const row = new ActionRowBuilder().addComponents(settingsSelect);
         await interaction.reply({ content: "Select a setting to configure:", components: [row], ephemeral: false });
     }
