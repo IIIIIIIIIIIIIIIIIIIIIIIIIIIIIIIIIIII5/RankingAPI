@@ -15,23 +15,26 @@ async function getXsrfToken() {
 
 async function fetchRoles(groupId) {
     const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
-    const roles = {};
-    res.data.roles.forEach(role => roles[role.rank] = { id: role.id, name: role.name });
-    return roles;
-}
-
-async function getRankInfo(groupId, rankId) {
-    const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
-    const role = res.data.roles.find(r => r.id === rankId);
-    if (!role) return null;
-    return { id: role.id, name: role.name, rank: role.rank };
+    return res.data.roles.sort((a, b) => a.rank - b.rank); // sorted by rank number
 }
 
 async function getCurrentRank(groupId, userId) {
     const res = await axios.get(`https://groups.roblox.com/v2/users/${userId}/groups/roles`);
     const groupData = res.data.data.find(g => g.group.id === groupId);
     if (!groupData) throw new Error("User not in group");
-    return groupData.role.rank;
+    return groupData.role.rank; // numeric rank
+}
+
+// **New helpers for promote/demote**
+async function getNextRank(groupId, currentRankNumber) {
+    const roles = await fetchRoles(groupId);
+    return roles.find(r => r.rank > currentRankNumber) || null;
+}
+
+async function getPreviousRank(groupId, currentRankNumber) {
+    const roles = await fetchRoles(groupId);
+    const lowerRoles = roles.filter(r => r.rank < currentRankNumber);
+    return lowerRoles.length ? lowerRoles[lowerRoles.length - 1] : null;
 }
 
 async function setRank(groupId, userId, roleId, issuer, logFunction) {
@@ -141,14 +144,10 @@ async function getUserIdFromUsername(username) {
     try {
         const res = await axios.post("https://users.roblox.com/v1/usernames/users", {
             usernames: [username]
-        }, {
-            headers: { "Content-Type": "application/json" }
-        });
-        if (res.data.data && res.data.data.length > 0) {
-            return res.data.data[0].id;
-        } else {
-            throw new Error("User not found");
-        }
+        }, { headers: { "Content-Type": "application/json" } });
+
+        if (res.data.data && res.data.data.length > 0) return res.data.data[0].id;
+        throw new Error("User not found");
     } catch (err) {
         throw new Error(`Failed to get user ID: ${err.response?.statusText || err.message}`);
     }
@@ -190,10 +189,11 @@ async function getSelfUserId() {
 module.exports = {
     fetchRoles,
     getCurrentRank,
+    getNextRank,
+    getPreviousRank,
     setRank,
     getRobloxUserId,
     getRankIdFromName,
-    getRankInfo,
     getRobloxDescription,
     getUserIdFromUsername,
     exileUser,
