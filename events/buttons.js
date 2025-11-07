@@ -2,15 +2,16 @@ const { getJsonBin, saveJsonBin } = require("../utils");
 const { leaveGroup } = require("../roblox");
 
 module.exports = async function handleButton(interaction, client) {
+    if (!interaction.isButton()) return;
+
     const Db = await getJsonBin();
-    Db.PendingApprovals = Db.PendingApprovals || {};
     Db.ServerConfig = Db.ServerConfig || {};
+    Db.PendingApprovals = Db.PendingApprovals || {};
 
     const customId = interaction.customId;
-    let match = null;
-    let actionType = null;
-    let GroupId;
+    let actionType, GroupId;
 
+    let match;
     if ((match = customId.match(/^(accept|decline)_(\d+)$/))) {
         actionType = match[1];
         GroupId = match[2];
@@ -20,7 +21,7 @@ module.exports = async function handleButton(interaction, client) {
     } else return;
 
     const pending = Db.PendingApprovals[GroupId];
-    if (!pending) return interaction.reply({ content: "No pending request found.", ephemeral: true });
+    if (!pending) return interaction.reply({ content: "No pending request found for this group ID.", ephemeral: true });
 
     const guildId = pending.guildId;
     const requester = await client.users.fetch(pending.requesterId).catch(() => null);
