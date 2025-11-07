@@ -15,17 +15,16 @@ async function getXsrfToken() {
 
 async function fetchRoles(groupId) {
     const res = await axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
-    return res.data.roles.sort((a, b) => a.rank - b.rank); // sorted by rank number
+    return res.data.roles.sort((a, b) => a.rank - b.rank);
 }
 
 async function getCurrentRank(groupId, userId) {
     const res = await axios.get(`https://groups.roblox.com/v2/users/${userId}/groups/roles`);
     const groupData = res.data.data.find(g => g.group.id === groupId);
     if (!groupData) throw new Error("User not in group");
-    return groupData.role.rank; // numeric rank
+    return groupData.role.rank;
 }
 
-// **New helpers for promote/demote**
 async function getNextRank(groupId, currentRankNumber) {
     const roles = await fetchRoles(groupId);
     return roles.find(r => r.rank > currentRankNumber) || null;
