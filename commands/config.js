@@ -15,15 +15,13 @@ module.exports = {
             sub.setName("remove")
                .setDescription("Request to remove the configured Roblox group from this server.")),
 
-    async execute(interaction, PendingApprovals) {
+    async execute(interaction) {
         if (!interaction.guild) return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
-
-        if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: "Only the server owner can use this command.", ephemeral: true });
-        }
+        if (interaction.user.id !== interaction.guild.ownerId) return interaction.reply({ content: "Only the server owner can use this command.", ephemeral: true });
 
         const Db = await getJsonBin();
         Db.ServerConfig = Db.ServerConfig || {};
+        Db.PendingApprovals = Db.PendingApprovals || {};
         const existing = Db.ServerConfig[interaction.guild.id];
         const sub = interaction.options.getSubcommand();
 
@@ -34,10 +32,9 @@ module.exports = {
             const GroupId = interaction.options.getInteger("groupid");
             if (existing && existing.GroupId) return interaction.reply({ content: "This server already has a configured group. Use `/config remove` first.", ephemeral: true });
 
-            Db.ServerConfig[interaction.guild.id] = { GroupId };
+            Db.PendingApprovals[GroupId] = { requesterId: interaction.user.id, guildId: interaction.guild.id, action: "set" };
             await saveJsonBin(Db);
 
-            PendingApprovals[GroupId] = { requesterId: interaction.user.id, guildId: interaction.guild.id, action: "set" };
             const Row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId(`accept_${GroupId}`).setLabel("Accept").setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId(`decline_${GroupId}`).setLabel("Decline").setStyle(ButtonStyle.Danger)
@@ -51,7 +48,9 @@ module.exports = {
             if (!existing || !existing.GroupId) return interaction.reply({ content: "No group is currently configured.", ephemeral: true });
 
             const GroupId = existing.GroupId;
-            PendingApprovals[GroupId] = { requesterId: interaction.user.id, guildId: interaction.guild.id, action: "remove" };
+            Db.PendingApprovals[GroupId] = { requesterId: interaction.user.id, guildId: interaction.guild.id, action: "remove" };
+            await saveJsonBin(Db);
+
             const Row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId(`remove_accept_${GroupId}`).setLabel("Accept").setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId(`remove_decline_${GroupId}`).setLabel("Decline").setStyle(ButtonStyle.Danger)
