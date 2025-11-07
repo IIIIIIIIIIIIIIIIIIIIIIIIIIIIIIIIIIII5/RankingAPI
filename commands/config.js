@@ -22,6 +22,7 @@ module.exports = {
         const Db = await getJsonBin();
         Db.ServerConfig = Db.ServerConfig || {};
         Db.PendingApprovals = Db.PendingApprovals || {};
+
         const existing = Db.ServerConfig[interaction.guild.id];
         const sub = interaction.options.getSubcommand();
 
@@ -32,7 +33,11 @@ module.exports = {
             const GroupId = interaction.options.getInteger("groupid");
             if (existing && existing.GroupId) return interaction.reply({ content: "This server already has a configured group. Use `/config remove` first.", ephemeral: true });
 
-            Db.PendingApprovals[GroupId] = { requesterId: interaction.user.id, guildId: interaction.guild.id, action: "set" };
+            Db.PendingApprovals[GroupId] = {
+                requesterId: interaction.user.id,
+                guildId: interaction.guild.id,
+                action: "set"
+            };
             await saveJsonBin(Db);
 
             const Row = new ActionRowBuilder().addComponents(
@@ -40,7 +45,11 @@ module.exports = {
                 new ButtonBuilder().setCustomId(`decline_${GroupId}`).setLabel("Decline").setStyle(ButtonStyle.Danger)
             );
 
-            await Channel.send({ content: `New pending configuration:\nGroup ID: ${GroupId}\nRequested by: <@${interaction.user.id}>`, components: [Row] });
+            await Channel.send({
+                content: `New pending configuration:\nGroup ID: ${GroupId}\nRequested by: <@${interaction.user.id}>`,
+                components: [Row]
+            });
+
             return interaction.reply({ content: `Group ID ${GroupId} set. Waiting for admin approval.`, ephemeral: true });
         }
 
@@ -48,7 +57,12 @@ module.exports = {
             if (!existing || !existing.GroupId) return interaction.reply({ content: "No group is currently configured.", ephemeral: true });
 
             const GroupId = existing.GroupId;
-            Db.PendingApprovals[GroupId] = { requesterId: interaction.user.id, guildId: interaction.guild.id, action: "remove" };
+
+            Db.PendingApprovals[GroupId] = {
+                requesterId: interaction.user.id,
+                guildId: interaction.guild.id,
+                action: "remove"
+            };
             await saveJsonBin(Db);
 
             const Row = new ActionRowBuilder().addComponents(
@@ -56,7 +70,11 @@ module.exports = {
                 new ButtonBuilder().setCustomId(`remove_decline_${GroupId}`).setLabel("Decline").setStyle(ButtonStyle.Danger)
             );
 
-            await Channel.send({ content: `Pending group removal request:\nGroup ID: ${GroupId}\nRequested by: <@${interaction.user.id}>`, components: [Row] });
+            await Channel.send({
+                content: `Pending group removal request:\nGroup ID: ${GroupId}\nRequested by: <@${interaction.user.id}>`,
+                components: [Row]
+            });
+
             return interaction.reply({ content: `A removal request for group ID ${GroupId} has been sent for approval.`, ephemeral: true });
         }
     }
