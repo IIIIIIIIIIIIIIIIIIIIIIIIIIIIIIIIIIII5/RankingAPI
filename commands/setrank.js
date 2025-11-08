@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { setRank, getRankIdFromName, getUserIdFromUsername } = require("../roblox");
+const { setRank, getRankIdFromName, getUserIdFromUsername, fetchRoles } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
+const { getJsonBin, saveJsonBin } = require("../utils");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,13 +19,17 @@ module.exports = {
             const username = interaction.options.getString("username");
             const rankName = interaction.options.getString("rankname");
             const userId = await getUserIdFromUsername(username);
-            const Db = await require("../utils").getJsonBin();
+            const Db = await getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
 
             const roleId = await getRankIdFromName(GroupId, rankName);
             if (!roleId) return interaction.reply({ content: `Rank "${rankName}" not found in the group.`, ephemeral: true });
 
             await setRank(GroupId, userId, roleId, interaction.user.username);
+
+            const liveRoles = await fetchRoles(GroupId);
+            Db.ServerConfig[interaction.guild.id].LastFetched = liveRoles.map(r => r.name);
+            await saveJsonBin(Db);
 
             const embed = new EmbedBuilder()
                 .setColor(0x2ecc71)
