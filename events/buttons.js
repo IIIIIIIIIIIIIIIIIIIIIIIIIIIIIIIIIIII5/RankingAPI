@@ -1,8 +1,9 @@
 const { getJsonBin, saveJsonBin } = require("../utils");
 const { leaveGroup, fetchRoles } = require("../roblox");
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
 
 module.exports = async function handleButton(interaction, client) {
-    if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
+    if (!interaction.isButton() && !interaction.isModalSubmit() && !interaction.isStringSelectMenu()) return;
 
     const Db = await getJsonBin();
     Db.ServerConfig = Db.ServerConfig || {};
@@ -69,12 +70,10 @@ module.exports = async function handleButton(interaction, client) {
         try {
             roles = (await fetchRoles(GroupId)).filter(r => r.name.toLowerCase() !== "guest");
         } catch (err) {
-            return interaction.update({ content: `Failed to fetch roles from Roblox. Try again later.\nError: ${err.message}`, components: [] });
+            return interaction.update({ content: `Failed to fetch roles from Roblox.\n${err.message}`, components: [] });
         }
 
-        if (!roles || roles.length === 0) {
-            return interaction.update({ content: "No roles found in the group.", components: [] });
-        }
+        if (!roles.length) return interaction.update({ content: "No roles found in the group.", components: [] });
 
         Db.XP[guildId] = Db.XP[guildId] || {};
         Db.XP[guildId]._setupIndex = 0;
@@ -83,60 +82,66 @@ module.exports = async function handleButton(interaction, client) {
         await saveJsonBin(Db);
 
         const firstRole = roles[0];
-        return interaction.update({
-            content: `How much XP do you want for the rank **${firstRole.name}**?`,
-            components: [
-                {
-                    type: 1,
-                    components: [
-                        { type: 2, label: "Set XP", style: 3, custom_id: `setxp_${firstRole.id}` },
-                        { type: 2, label: "Skip", style: 2, custom_id: `skipxp_${firstRole.id}` }
-                    ]
-                }
-            ]
-        });
+        const modal = new ModalBuilder()
+            .setCustomId(`xp_modal_${firstRole.id}`)
+            .setTitle(`Set XP for ${firstRole.name}`)
+            .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("xp_amount")
+                        .setLabel("Enter XP amount")
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                )
+            );
+
+        return interaction.showModal(modal);
     }
 
-    if (customId === "xp_no") {
-        return interaction.update({ content: "XP setup cancelled.", components: [] });
-    }
-
-    if (customId.startsWith("setxp_") || customId.startsWith("skipxp_")) {
+    if (interaction.isModalSubmit() && customId.startsWith("xp_modal_")) {
+        const roleId = customId.split("_")[2];
         const xpData = Db.XP[guildId];
         if (!xpData || !xpData._setupRoles || xpData._setupIndex === undefined) {
-            return interaction.update({ content: "XP setup data not found or invalid.", components: [] });
+            return interaction.reply({ content: "XP setup data not found or invalid.", ephemeral: true });
         }
 
-        const roleId = customId.split("_")[1];
-        const roleIndex = xpData._setupRoles.findIndex(r => r.id.toString() === roleId);
-        if (roleIndex === -1) return interaction.update({ content: "Role not found in setup data.", components: [] });
+        const input = interaction.fields.getTextInputValue("xp_amount");
+        const xpValue = parseInt(input);
+        if (isNaN(xpValue) || xpValue < 0) {
+            return interaction.reply({ content: "Invalid XP value.", ephemeral: true });
+        }
 
-        if (customId.startsWith("setxp_")) xpData.Ranks[roleId] = 0;
-
-        xpData._setupIndex = roleIndex + 1;
+        xpData.Ranks[roleId] = xpValue;
+        xpData._setupIndex += 1;
         await saveJsonBin(Db);
 
         if (xpData._setupIndex >= xpData._setupRoles.length) {
             delete xpData._setupIndex;
             delete xpData._setupRoles;
             await saveJsonBin(Db);
-            return interaction.update({ content: "XP system has been fully configured!", components: [] });
+            return interaction.reply({ content: "XP system has been fully configured!", ephemeral: true });
         }
 
         const nextRole = xpData._setupRoles[xpData._setupIndex];
-        return interaction.update({
-            content: `How much XP do you want for the rank **${nextRole.name}**?`,
-            components: [
-                {
-                    type: 1,
-                    components: [
-                        { type: 2, label: "Set XP", style: 3, custom_id: `setxp_${nextRole.id}` },
-                        { type: 2, label: "Skip", style: 2, custom_id: `skipxp_${nextRole.id}` }
-                    ]
-                }
-            ]
-        });
+        const modal = new ModalBuilder()
+            .setCustomId(`xp_modal_${nextRole.id}`)
+            .setTitle(`Set XP for ${nextRole.name}`)
+            .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("xp_amount")
+                        .setLabel("Enter XP amount")
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                )
+            );
+
+        return interaction.reply({ content: `XP for **${interaction.guild.roles.cache.get(roleId)?.name || "unknown"}** set to ${xpValue}.`, ephemeral: true })
+            .then(() => interaction.showModal(modal));
     }
+
+    if (customId === "xp_no") return interaction.update({ content: "XP setup cancelled.", components: [] });
+
     if (interaction.isStringSelectMenu() && customId === "remove_xp_roles") {
         const selectedRoles = interaction.values;
         if (!Db.XP[guildId]) return interaction.update({ content: "No XP roles configured.", components: [] });
