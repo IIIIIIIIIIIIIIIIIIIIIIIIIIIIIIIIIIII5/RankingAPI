@@ -17,7 +17,22 @@ ClientBot.once("ready", () => {
     setInterval(() => ClientBot.updateActivity(), 60000);
 });
 
-ClientBot.on("guildCreate", () => ClientBot.updateActivity());
+ClientBot.on("guildCreate", async guild => {
+    ClientBot.updateActivity();
+
+    try {
+        const owner = await guild.fetchOwner();
+
+        if (!owner) return;
+
+        const message = "**THANK YOU FOR ADDING RoSystem!**\n\nWe appreciate you adding RoSystem — a group management bot currently in Alpha, meaning we are actively adding new features and always open for feedback.\n\nTo get started, run /config with your group ID to set up the bot.\n\nFor support, join our Support Server:\nhttps://discord.gg/VhBqwBxHSd\n\n**Best Wishes,**\n**Team RoSystem**.";
+
+        await owner.send(message).catch(() => {});
+    } catch (err) {
+        console.error("Failed to send message:", err);
+    }
+});
+        
 ClientBot.on("guildDelete", () => ClientBot.updateActivity());
 
 ClientBot.updateActivity = function () {
