@@ -4,6 +4,7 @@ const { getJsonBin } = require("../utils");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("view")
+        .setDescription("View your server's XP configuration")
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(sub =>
             sub.setName("settings")
