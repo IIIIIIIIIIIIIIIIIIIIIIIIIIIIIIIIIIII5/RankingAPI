@@ -28,21 +28,29 @@ module.exports = {
             let rank = "N/A";
             if (GroupId) {
                 try {
-                    const userRank = await getCurrentRank(GroupId, userId);
-                    rank = userRank;
+                    const roles = await fetchRoles(GroupId);
+                    const userRankNumber = await getCurrentRank(GroupId, userId);
+                    const userRole = roles.find(r => r.rank === userRankNumber);
+                    rank = userRole ? userRole.name : "Not in group";
                 } catch {
                     rank = "Not in group";
                 }
             }
 
-            const userXP = Db.XP?.[guildId]?.[userId]?.amount || 0;
-            const xpRanks = Db.XP?.[guildId]?.Ranks || {};
-            let nextRankXP = "Max";
-            const sortedXP = Object.entries(xpRanks).sort((a,b) => a[1] - b[1]);
-            for (const [rName, xpVal] of sortedXP) {
-                if (xpVal > userXP) {
-                    nextRankXP = xpVal - userXP;
-                    break;
+            const xpSystemConfigured = Db.XP?.[guildId]?.Ranks && Object.keys(Db.XP[guildId].Ranks).length > 0;
+            let userXP = 0;
+            let nextRankXP = "XP System has not been configured";
+
+            if (xpSystemConfigured) {
+                userXP = Db.XP?.[guildId]?.[userId]?.amount || 0;
+                const xpRanks = Db.XP[guildId].Ranks;
+                const sortedXP = Object.entries(xpRanks).sort((a, b) => a[1] - b[1]);
+                nextRankXP = "Max";
+                for (const [rName, xpVal] of sortedXP) {
+                    if (xpVal > userXP) {
+                        nextRankXP = xpVal - userXP;
+                        break;
+                    }
                 }
             }
 
@@ -51,8 +59,8 @@ module.exports = {
                 .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=150&height=150&format=png`)
                 .addFields(
                     { name: "Username", value: username, inline: true },
-                    { name: "Rank", value: rank.toString(), inline: true },
-                    { name: "XP", value: userXP.toString(), inline: true },
+                    { name: "Rank", value: rank, inline: true },
+                    { name: "XP", value: xpSystemConfigured ? userXP.toString() : "N/A", inline: true },
                     { name: "XP to Next Rank", value: nextRankXP.toString(), inline: true }
                 );
 
