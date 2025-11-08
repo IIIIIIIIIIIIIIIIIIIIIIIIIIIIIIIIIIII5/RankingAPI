@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { checkCommandRole } = require("../roleCheck");
-const { GetJsonBin, SaveJsonBin, GetRobloxUserId } = require("../utils");
+const { getJsonBin, saveJsonBin, GetRobloxUserId } = require("../utils");
 const { fetchRoles } = require("../roblox");
 
 module.exports = {
