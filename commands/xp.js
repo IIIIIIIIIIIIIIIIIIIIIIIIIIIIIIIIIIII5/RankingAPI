@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 const { checkCommandRole } = require("../roleCheck");
 const { getJsonBin, saveJsonBin } = require("../utils");
 const { getRobloxUserId } = require("../roblox");
@@ -26,6 +26,9 @@ module.exports = {
             .setDescription("Set ranks that can give XP")
             .addStringOption(opt => opt.setName("roleid").setDescription("Role ID allowed to give XP").setRequired(true)))
         .addSubcommand(sub => sub
+            .setName("permission_remove")
+            .setDescription("Remove ranks allowed to give XP"))
+        .addSubcommand(sub => sub
             .setName("name")
             .setDescription("Set a custom name for XP")
             .addStringOption(opt => opt.setName("xpname").setDescription("Custom XP name").setRequired(true)))
@@ -37,24 +40,25 @@ module.exports = {
     async execute(interaction) {
         const Db = await getJsonBin();
         const guildId = interaction.guild.id;
-
         const sub = interaction.options.getSubcommand();
 
         if (sub === "setup") {
             const allowed = await checkCommandRole(interaction, "config");
             if (!allowed) return interaction.reply({ content: "You don't have permission.", ephemeral: true });
 
-            await interaction.reply({
+            return interaction.reply({
                 content: "Are you sure you want to set up your group ranks with XP?",
                 components: [
-                    new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setCustomId("xp_yes").setLabel("Yes").setStyle(ButtonStyle.Success),
-                        new ButtonBuilder().setCustomId("xp_no").setLabel("No").setStyle(ButtonStyle.Danger)
-                    )
+                    {
+                        type: 1,
+                        components: [
+                            { type: 2, label: "Yes", style: 3, custom_id: "xp_yes" },
+                            { type: 2, label: "No", style: 4, custom_id: "xp_no" }
+                        ]
+                    }
                 ],
                 ephemeral: true
             });
-            return;
         }
 
         if (sub === "add" || sub === "remove") {
@@ -91,6 +95,34 @@ module.exports = {
             await saveJsonBin(Db);
 
             return interaction.reply({ content: `XP permission role set to <@&${roleId}>`, ephemeral: true });
+        }
+
+        if (sub === "permission_remove") {
+            const allowed = await checkCommandRole(interaction, "xp");
+            if (!allowed) return interaction.reply({ content: "No permission.", ephemeral: true });
+
+            const xpRoles = [];
+            if (Db.XP[guildId]?.PermissionRole) {
+                const role = interaction.guild.roles.cache.get(Db.XP[guildId].PermissionRole);
+                if (role) xpRoles.push({ label: role.name, value: role.id });
+            }
+
+            if (xpRoles.length === 0) {
+                return interaction.reply({ content: "No roles have XP permission.", ephemeral: true });
+            }
+
+            const menu = new StringSelectMenuBuilder()
+                .setCustomId("remove_xp_roles")
+                .setPlaceholder("Select role(s) to remove XP permission")
+                .setMinValues(1)
+                .setMaxValues(xpRoles.length)
+                .addOptions(xpRoles);
+
+            return interaction.reply({
+                content: "Select the role(s) to remove XP permission from:",
+                components: [{ type: 1, components: [menu] }],
+                ephemeral: true
+            });
         }
 
         if (sub === "name") {
