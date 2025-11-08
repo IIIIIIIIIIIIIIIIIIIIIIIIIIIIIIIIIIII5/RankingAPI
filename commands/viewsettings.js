@@ -3,7 +3,7 @@ const { getJsonBin } = require("../utils");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("view settings")
+        .setName("viewsettings")
         .setDescription("View your current Roblox command settings")
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
