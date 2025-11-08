@@ -2,7 +2,6 @@ const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = requi
 const { checkCommandRole } = require("../roleCheck");
 const { getJsonBin, saveJsonBin } = require("../utils");
 const { getRobloxUserId } = require("../roblox");
-const { fetchRoles } = require("../roblox");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -24,7 +23,7 @@ module.exports = {
         .addSubcommand(sub => sub
             .setName("permission")
             .setDescription("Set ranks that can give XP")
-            .addStringOption(opt => opt.setName("roleid").setDescription("Role ID allowed to give XP").setRequired(true)))
+            .addRoleOption(opt => opt.setName("role").setDescription("Role allowed to give XP").setRequired(true)))
         .addSubcommand(sub => sub
             .setName("permission_remove")
             .setDescription("Remove ranks allowed to give XP"))
@@ -69,7 +68,17 @@ module.exports = {
             const amount = interaction.options.getInteger("amount");
 
             try {
-                const userId = await getRobloxUserId(username);
+                let userId;
+                const retries = 3;
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        userId = await getRobloxUserId(username);
+                        break;
+                    } catch (err) {
+                        if (i === retries - 1) throw err;
+                    }
+                }
+
                 Db.XP = Db.XP || {};
                 Db.XP[guildId] = Db.XP[guildId] || {};
                 Db.XP[guildId][userId] = Db.XP[guildId][userId] || { amount: 0 };
@@ -80,7 +89,7 @@ module.exports = {
                 await saveJsonBin(Db);
                 return interaction.reply({ content: `${sub === "add" ? "Added" : "Removed"} ${amount} XP ${sub === "add" ? "to" : "from"} ${username}.`, ephemeral: true });
             } catch (err) {
-                return interaction.reply({ content: `Failed: ${err.message}`, ephemeral: true });
+                return interaction.reply({ content: `Failed to fetch Roblox data. Try again later.\nError: ${err.message}`, ephemeral: true });
             }
         }
 
@@ -88,13 +97,15 @@ module.exports = {
             const allowed = await checkCommandRole(interaction, "xp");
             if (!allowed) return interaction.reply({ content: "No permission.", ephemeral: true });
 
-            const roleId = interaction.options.getString("roleid");
+            const role = interaction.options.getRole("role");
+            if (!role) return interaction.reply({ content: "Invalid role.", ephemeral: true });
+
             Db.XP = Db.XP || {};
             Db.XP[guildId] = Db.XP[guildId] || {};
-            Db.XP[guildId].PermissionRole = roleId;
+            Db.XP[guildId].PermissionRole = role.id;
             await saveJsonBin(Db);
 
-            return interaction.reply({ content: `XP permission role set to <@&${roleId}>`, ephemeral: true });
+            return interaction.reply({ content: `XP permission role set to ${role}`, ephemeral: true });
         }
 
         if (sub === "permission_remove") {
