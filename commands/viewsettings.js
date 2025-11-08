@@ -4,17 +4,10 @@ const { getJsonBin } = require("../utils");
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("view")
-        .setDescription("View your server's XP configuration")
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .addSubcommand(sub =>
-            sub.setName("settings")
-               .setDescription("View your current Roblox command settings")
-        ),
+        .setDescription("View your current Roblox command settings")
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        const sub = interaction.options.getSubcommand();
-        if (sub !== "settings") return;
-
         const Db = await getJsonBin();
         const guildId = interaction.guild.id;
         const config = Db.ServerConfig?.[guildId];
