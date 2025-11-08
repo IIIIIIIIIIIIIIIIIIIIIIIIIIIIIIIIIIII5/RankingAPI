@@ -65,6 +65,8 @@ module.exports = async function handleButton(interaction, client) {
             if (!GroupId) return interaction.update({ content: "Group ID not configured.", components: [] });
 
             const roles = (await fetchRoles(GroupId)).filter(r => r.name.toLowerCase() !== "guest");
+            if (!roles || roles.length === 0) return interaction.update({ content: "No roles available for XP setup.", components: [] });
+
             Db.XP[guildId] = Db.XP[guildId] || { Ranks: {}, _setupIndex: 0, _setupRoles: roles };
             await saveJsonBin(Db);
 
@@ -88,7 +90,13 @@ module.exports = async function handleButton(interaction, client) {
             const guildId = interaction.guild.id;
             const roleId = customId.split("_")[1];
             const xpData = Db.XP[guildId];
+
+            if (!xpData || !xpData._setupRoles || xpData._setupRoles.length === 0) {
+                return interaction.update({ content: "XP setup data not found or invalid.", components: [] });
+            }
+
             const roleIndex = xpData._setupRoles.findIndex(r => r.id.toString() === roleId);
+            if (roleIndex === -1) return interaction.update({ content: "Role not found in setup list.", components: [] });
 
             if (customId.startsWith("setxp_")) xpData.Ranks[roleId] = 0;
 
