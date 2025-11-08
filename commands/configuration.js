@@ -1,42 +1,52 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
-const { getJsonBin, saveJsonBin } = require("../utils");
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require("discord.js");
+const { getJsonBin } = require("../utils");
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName("view")
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-        .addSubcommand(sub =>
-            sub.setName("configuration")
-               .setDescription("View your XP system configuration and permissions")
-        ),
+        .setName("viewconfiguration")
+        .setDescription("View your server's XP configuration")
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction) {
-        const sub = interaction.options.getSubcommand();
-        if (sub !== "configuration") return;
-
         const Db = await getJsonBin();
         const guildId = interaction.guild.id;
         const xpData = Db.XP?.[guildId];
+        const config = Db.ServerConfig?.[guildId];
 
         const embed = new EmbedBuilder()
-            .setTitle("Configured XP System")
+            .setTitle("Server XP Configuration")
             .setColor("#2b2d31");
 
-        if (!xpData || !xpData.Ranks || Object.keys(xpData.Ranks).length === 0) {
-            embed.setDescription("XP system has not been configured for this server.");
-        } else {
-            let ranksText = '';
-            const sortedRanks = Object.entries(xpData.Ranks).sort((a, b) => a[1] - b[1]);
-            for (const [roleName, xpAmount] of sortedRanks) {
-                ranksText += `**${roleName}** - (${xpAmount}) XP\n`;
-            }
-            embed.addFields({ name: "Configured Roles", value: ranksText, inline: false });
+        if (xpData && xpData.Ranks && Object.keys(xpData.Ranks).length > 0) {
+            const ranksList = Object.entries(xpData.Ranks)
+                .map(([roleId, xp]) => `<@&${roleId}> - (${xp || 0}) XP`)
+                .join("\n");
 
-            let permittedRolesText = "No roles have XP management permissions.";
-            if (xpData.PermissionRoles && xpData.PermissionRoles.length > 0) {
-                permittedRolesText = xpData.PermissionRoles.map(rid => `<@&${rid}>`).join(", ");
-            }
-            embed.addFields({ name: "Roles with XP Management Access", value: permittedRolesText, inline: false });
+            embed.addFields({
+                name: "Configured Roles",
+                value: ranksList,
+                inline: false
+            });
+        } else {
+            embed.addFields({
+                name: "Configured Roles",
+                value: "No XP roles configured yet.",
+                inline: false
+            });
+        }
+
+        if (config && config.CommandRoles && config.CommandRoles.xp) {
+            embed.addFields({
+                name: "Roles with XP Management Permissions",
+                value: `<@&${config.CommandRoles.xp}>`,
+                inline: false
+            });
+        } else {
+            embed.addFields({
+                name: "Roles with XP Management Permissions",
+                value: "No roles have permission to manage XP.",
+                inline: false
+            });
         }
 
         await interaction.reply({ embeds: [embed], ephemeral: false });
