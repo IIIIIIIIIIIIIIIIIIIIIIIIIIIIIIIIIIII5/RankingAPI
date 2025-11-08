@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { getRobloxUserId, getRobloxDescription, fetchRoles, getCurrentRank } = require("../roblox");
-const { GetJsonBin } = require("../utils");
+const { getJsonBin } = require("../utils");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,7 +17,7 @@ module.exports = {
 
         try {
             const username = interaction.options.getString("username");
-            const Db = await GetJsonBin();
+            const Db = await getJsonBin();
 
             const userId = await getRobloxUserId(username);
             const description = await getRobloxDescription(userId);
