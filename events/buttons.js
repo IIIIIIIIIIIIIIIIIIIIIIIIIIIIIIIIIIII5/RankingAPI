@@ -62,50 +62,60 @@ module.exports = async function handleButton(interaction, client) {
     }
 
     if (customId === "xp_yes") {
-        await interaction.update({ content: "Starting XP setup...", components: [] });
-
         const guildId = interaction.guild.id;
         const GroupId = Db.ServerConfig?.[guildId]?.GroupId;
-        if (!GroupId) return interaction.followUp({ content: "Group ID not configured.", ephemeral: true });
+        if (!GroupId) return interaction.update({ content: "Group ID not configured.", components: [] });
 
-        const roles = await fetchRoles(GroupId);
+        const roles = (await fetchRoles(GroupId)).filter(r => r.name.toLowerCase() !== "guest");
         Db.XP = Db.XP || {};
-        Db.XP[guildId] = Db.XP[guildId] || { Ranks: {} };
+        Db.XP[guildId] = Db.XP[guildId] || { Ranks: {}, _setupIndex: 0, _setupRoles: roles };
         await saveJsonBin(Db);
 
-        for (const role of roles.slice(0, -1)) {
-            await interaction.followUp({
-                content: `How much XP do you want for the rank **${role.name}**?`,
-                components: [
-                    {
-                        type: 1,
-                        components: [
-                            { type: 2, label: "Set XP", style: 3, custom_id: `setxp_${role.id}` },
-                            { type: 2, label: "Skip", style: 2, custom_id: `skipxp_${role.id}` }
-                        ]
-                    }
-                ],
-                ephemeral: true
-            });
-        }
-
-        return interaction.followUp({ content: "XP System has been configured.", ephemeral: true });
+        const firstRole = roles[0];
+        return interaction.update({
+            content: `How much XP do you want for the rank **${firstRole.name}**?`,
+            components: [
+                { type: 1, components: [
+                    { type: 2, label: "Set XP", style: 3, custom_id: `setxp_${firstRole.id}` },
+                    { type: 2, label: "Skip", style: 2, custom_id: `skipxp_${firstRole.id}` }
+                ]}
+            ]
+        });
     }
 
     if (customId === "xp_no") {
-        await interaction.update({ content: "XP setup cancelled.", components: [] });
-        return;
+        return interaction.update({ content: "XP setup cancelled.", components: [] });
     }
 
-    if (customId.startsWith("setxp_")) {
+    if (customId.startsWith("setxp_") || customId.startsWith("skipxp_")) {
+        const guildId = interaction.guild.id;
         const roleId = customId.split("_")[1];
-        await interaction.reply({ content: `You chose to set XP for role ID ${roleId}.`, ephemeral: true });
-        return;
-    }
+        const xpData = Db.XP[guildId];
+        const roleIndex = xpData._setupRoles.findIndex(r => r.id.toString() === roleId);
 
-    if (customId.startsWith("skipxp_")) {
-        const roleId = customId.split("_")[1];
-        await interaction.reply({ content: `Skipped XP setup for role ID ${roleId}.`, ephemeral: true });
-        return;
+        if (customId.startsWith("setxp_")) {
+            xpData.Ranks[roleId] = 0;
+        }
+
+        xpData._setupIndex = roleIndex + 1;
+        await saveJsonBin(Db);
+
+        if (xpData._setupIndex >= xpData._setupRoles.length) {
+            delete xpData._setupIndex;
+            delete xpData._setupRoles;
+            await saveJsonBin(Db);
+            return interaction.update({ content: "XP system has been fully configured!", components: [] });
+        }
+
+        const nextRole = xpData._setupRoles[xpData._setupIndex];
+        return interaction.update({
+            content: `How much XP do you want for the rank **${nextRole.name}**?`,
+            components: [
+                { type: 1, components: [
+                    { type: 2, label: "Set XP", style: 3, custom_id: `setxp_${nextRole.id}` },
+                    { type: 2, label: "Skip", style: 2, custom_id: `skipxp_${nextRole.id}` }
+                ]}
+            ]
+        });
     }
 };
