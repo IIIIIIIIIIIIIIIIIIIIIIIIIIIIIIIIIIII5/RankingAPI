@@ -15,20 +15,24 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply();
 
-        const username = interaction.options.getString("username");
-        const Db = await GetJsonBin();
-
         try {
+            const username = interaction.options.getString("username");
+            const Db = await GetJsonBin();
+
             const userId = await getRobloxUserId(username);
-            const robloxData = await getRobloxDescription(userId);
+            const description = await getRobloxDescription(userId);
 
             const guildId = interaction.guild.id;
-            const GroupId = Db.ServerConfig[guildId]?.GroupId;
+            const GroupId = Db.ServerConfig?.[guildId]?.GroupId;
 
             let rank = "N/A";
             if (GroupId) {
-                const userRank = await getCurrentRank(GroupId, userId);
-                rank = userRank;
+                try {
+                    const userRank = await getCurrentRank(GroupId, userId);
+                    rank = userRank;
+                } catch {
+                    rank = "Not in group";
+                }
             }
 
             const userXP = Db.XP?.[guildId]?.[userId]?.amount || 0;
@@ -54,7 +58,7 @@ module.exports = {
 
             await interaction.editReply({ embeds: [embed] });
         } catch (err) {
-            return interaction.editReply({ content: `Failed to fetch profile: ${err.message}` });
+            await interaction.editReply({ content: `Failed to fetch profile: ${err.message}` });
         }
     }
 };
