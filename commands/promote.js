@@ -2,6 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { getCurrentRank, getNextRank, setRank, getUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
+const { retry } = require("../utils/retry");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,23 +12,22 @@ module.exports = {
 
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "promote");
-        if (!allowed) 
-            return interaction.reply({ content: "You don't have permission to use this command.", flags: 64 });
+        if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
 
         try {
             await interaction.deferReply();
 
             const username = interaction.options.getString("username");
-            const userId = await getUserIdFromUsername(username);
+            const userId = await retry(() => getUserIdFromUsername(username));
             const Db = await require("../utils").getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
 
-            const currentRank = await getCurrentRank(GroupId, userId);
-            const nextRank = await getNextRank(GroupId, currentRank);
+            const currentRank = await retry(() => getCurrentRank(GroupId, userId));
+            const nextRank = await retry(() => getNextRank(GroupId, currentRank));
 
             if (!nextRank) return interaction.editReply({ content: `${username} is already at the highest rank.` });
 
-            await setRank(GroupId, userId, nextRank.id, interaction.user.username);
+            await retry(() => setRank(GroupId, userId, nextRank.id, interaction.user.username));
 
             const embed = new EmbedBuilder()
                 .setColor(0x2ecc71)
