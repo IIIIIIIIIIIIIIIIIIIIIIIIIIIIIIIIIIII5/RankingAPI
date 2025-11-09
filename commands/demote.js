@@ -11,9 +11,12 @@ module.exports = {
 
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "demote");
-        if (!allowed) return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
+        if (!allowed) 
+            return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
 
         try {
+            await interaction.deferReply();
+
             const username = interaction.options.getString("username");
             const userId = await getUserIdFromUsername(username);
             const Db = await require("../utils").getJsonBin();
@@ -22,7 +25,8 @@ module.exports = {
             const currentRank = await getCurrentRank(GroupId, userId);
             const lowerRank = await getPreviousRank(GroupId, currentRank);
 
-            if (!lowerRank) return interaction.reply({ content: `${username} is already at the lowest rank.`, ephemeral: true });
+            if (!lowerRank) 
+                return interaction.editReply({ content: `${username} is already at the lowest rank.` });
 
             await setRank(GroupId, userId, lowerRank.id, interaction.user.username);
 
@@ -36,7 +40,7 @@ module.exports = {
                     { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                 );
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [embed] });
             await logAction(interaction, embed);
         } catch (err) {
             const embed = new EmbedBuilder()
@@ -45,7 +49,12 @@ module.exports = {
                 .setDescription(err.message || "Unknown error")
                 .addFields({ name: "Date", value: new Date().toISOString().split("T")[0], inline: true });
 
-            await interaction.reply({ embeds: [embed] });
+            if (interaction.replied || interaction.deferred) {
+                await interaction.editReply({ embeds: [embed] });
+            } else {
+                await interaction.reply({ embeds: [embed] });
+            }
+
             await logAction(interaction, embed);
         }
     }
