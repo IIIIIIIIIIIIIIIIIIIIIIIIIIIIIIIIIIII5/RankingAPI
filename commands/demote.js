@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { getCurrentRank, getPreviousRank, setRank, getUserIdFromUsername } = require("../roblox");
+const { getCurrentRank, fetchRoles, setRank, getUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin } = require("../utils");
@@ -26,23 +26,26 @@ module.exports = {
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
             const currentRank = await getCurrentRank(GroupId, userId);
-            const lowerRank = await getPreviousRank(GroupId, currentRank);
-            if (!lowerRank) return interaction.editReply({ content: `${username} is already at the lowest rank.` });
+            const roles = await fetchRoles(GroupId);
+            const lowerRole = roles.filter(r => r.rank < currentRank).pop();
 
-            await setRank(GroupId, userId, lowerRank.id, interaction.user.username);
+            if (!lowerRole) return interaction.editReply({ content: `${username} is already at the lowest rank.` });
+
+            await setRank(GroupId, userId, lowerRole.id, interaction.user.username);
 
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
                 .setTitle("Demoted")
                 .addFields(
                     { name: "User", value: username, inline: true },
-                    { name: "New Rank", value: lowerRank.name, inline: true },
+                    { name: "New Rank", value: lowerRole.name, inline: true },
                     { name: "Issued By", value: interaction.user.tag, inline: true },
                     { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                 );
 
             await interaction.editReply({ embeds: [embed] });
             await logAction(interaction, embed);
+
         } catch (err) {
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
