@@ -12,7 +12,7 @@ module.exports = {
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "promote");
         if (!allowed) 
-            return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
+            return interaction.reply({ content: "You don't have permission to use this command.", flags: 64 });
 
         try {
             await interaction.deferReply();
@@ -25,9 +25,7 @@ module.exports = {
             const currentRank = await getCurrentRank(GroupId, userId);
             const nextRank = await getNextRank(GroupId, currentRank);
 
-            if (!nextRank) {
-                return interaction.editReply({ content: `${username} is already at the highest rank.` });
-            }
+            if (!nextRank) return interaction.editReply({ content: `${username} is already at the highest rank.` });
 
             await setRank(GroupId, userId, nextRank.id, interaction.user.username);
 
