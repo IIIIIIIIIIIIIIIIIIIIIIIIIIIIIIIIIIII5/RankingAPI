@@ -15,11 +15,12 @@ module.exports = {
         const allowed = await checkCommandRole(interaction, "setrank");
         if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
 
-        try {
-            await interaction.deferReply();
+        await interaction.deferReply();
 
-            const username = interaction.options.getString("username");
-            const rankName = interaction.options.getString("rankname");
+        try {
+            const username = interaction.options.getString("username").trim();
+            const rankName = interaction.options.getString("rankname").trim();
+
             const userId = await getUserIdFromUsername(username);
             if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
@@ -28,9 +29,17 @@ module.exports = {
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
             const roles = await fetchRoles(GroupId);
-            const targetRole = roles.find(r => r.name.toLowerCase() === rankName.toLowerCase());
 
-            if (!targetRole) return interaction.editReply({ content: `Rank "${rankName}" not found.` });
+            const targetRole = roles.find(r => r.name.trim().toLowerCase() === rankName.toLowerCase());
+            if (!targetRole) {
+                return interaction.editReply({
+                    content: `Rank "${rankName}" not found. Available roles: ${roles.map(r => r.name).join(", ")}`
+                });
+            }
+
+            const botRank = await fetchRoles(GroupId);
+            const botRole = botRank.find(r => r.id === targetRole.id);
+            if (!botRole) return interaction.editReply({ content: `Cannot assign this rank. Bot may lack permission.` });
 
             await setRank(GroupId, userId, targetRole.id, interaction.user.username);
 
