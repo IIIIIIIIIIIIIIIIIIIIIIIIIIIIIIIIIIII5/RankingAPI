@@ -163,15 +163,9 @@ module.exports = async function handleButton(interaction, client) {
 
         if (interaction.isModalSubmit() && customId.startsWith("xpmodal_")) {
             const roleId = customId.split("_")[1];
-            let xpValueRaw;
-            try {
-                xpValueRaw = interaction.fields.getTextInputValue("xp_value");
-            } catch (err) {
-                await interaction.reply({ content: "Failed to read XP input. Try again.", ephemeral: true });
-                return sendDebug(client, `Failed to get modal input: ${err.message}`);
-            }
-
+            const xpValueRaw = interaction.fields.getTextInputValue("xp_value");
             const xpValue = parseInt(xpValueRaw);
+
             if (isNaN(xpValue)) {
                 await interaction.reply({ content: "Invalid XP value. Enter a number.", ephemeral: true });
                 return sendDebug(client, "Invalid XP value entered");
@@ -188,9 +182,9 @@ module.exports = async function handleButton(interaction, client) {
                 await interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
                 return sendDebug(client, "Role not found on modal submit");
             }
-
+            
             xpData.Ranks[roleId] = xpValue;
-            xpData._setupIndex++;
+            xpData._setupIndex = (xpData._setupIndex || 0) + 1;
             await saveJsonBin(Db);
 
             if (xpData._setupIndex >= xpData._setupRoles.length) {
@@ -200,9 +194,9 @@ module.exports = async function handleButton(interaction, client) {
                 await interaction.reply({ content: "XP system fully configured!", ephemeral: true });
                 return sendDebug(client, "XP setup fully configured on modal submit");
             }
-
+            
             const nextRole = xpData._setupRoles[xpData._setupIndex];
-            await interaction.reply({
+            await interaction.followUp({ 
                 content: `Rank: **${nextRole.name}**`,
                 components: [
                     new ActionRowBuilder().addComponents(
