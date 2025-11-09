@@ -12,7 +12,7 @@ module.exports = {
 
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "demote");
-        if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
+        if (!allowed) return interaction.reply({ content: "You don't have permission.", ephemeral: true });
 
         await interaction.deferReply();
 
@@ -53,7 +53,7 @@ module.exports = {
                 .addFields({ name: "Date", value: new Date().toISOString().split("T")[0], inline: true });
 
             if (interaction.replied || interaction.deferred) await interaction.editReply({ embeds: [embed] });
-            else await interaction.reply({ embeds: [embed] });
+            else await interaction.reply({ embeds: [embed], ephemeral: true });
 
             await logAction(interaction, embed);
         }
