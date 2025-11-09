@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { setRank, getRankIdFromName, getUserIdFromUsername, fetchRoles } = require("../roblox");
+const { fetchRoles, setRank, getUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
@@ -27,13 +27,14 @@ module.exports = {
             const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
-            const roleId = await getRankIdFromName(GroupId, rankName);
-            if (!roleId) return interaction.editReply({ content: `Rank "${rankName}" not found.` });
+            const roles = await fetchRoles(GroupId);
+            const targetRole = roles.find(r => r.name.toLowerCase() === rankName.toLowerCase());
 
-            await setRank(GroupId, userId, roleId, interaction.user.username);
+            if (!targetRole) return interaction.editReply({ content: `Rank "${rankName}" not found.` });
 
-            const liveRoles = await fetchRoles(GroupId);
-            Db.ServerConfig[interaction.guild.id].LastFetched = liveRoles.map(r => r.name);
+            await setRank(GroupId, userId, targetRole.id, interaction.user.username);
+
+            Db.ServerConfig[interaction.guild.id].LastFetched = roles.map(r => r.name);
             await saveJsonBin(Db);
 
             const embed = new EmbedBuilder()
@@ -41,13 +42,14 @@ module.exports = {
                 .setTitle("Rank Updated")
                 .addFields(
                     { name: "User", value: username, inline: true },
-                    { name: "New Rank", value: rankName, inline: true },
+                    { name: "New Rank", value: targetRole.name, inline: true },
                     { name: "Issued By", value: interaction.user.tag, inline: true },
                     { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                 );
 
             await interaction.editReply({ embeds: [embed] });
             await logAction(interaction, embed);
+
         } catch (err) {
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
