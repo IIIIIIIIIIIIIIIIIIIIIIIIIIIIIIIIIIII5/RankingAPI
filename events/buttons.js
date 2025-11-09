@@ -92,10 +92,7 @@ module.exports = async function handleButton(interaction, client) {
     if (CustomId === "xp_yes") {
       await interaction.deferReply({ ephemeral: true });
       const GroupId = Db.ServerConfig?.[GuildId]?.GroupId;
-      if (!GroupId) {
-        await interaction.editReply({ content: "Group ID not configured." });
-        return;
-      }
+      if (!GroupId) { await interaction.editReply({ content: "Group ID not configured." }); return; }
 
       let Roles;
       try { Roles = await fetchRoles(GroupId); } 
