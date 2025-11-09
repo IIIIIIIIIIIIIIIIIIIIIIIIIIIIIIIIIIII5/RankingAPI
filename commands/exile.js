@@ -2,6 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { exileUser, getUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
+const { getJsonBin } = require("../utils");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,8 +19,10 @@ module.exports = {
             const username = interaction.options.getString("username");
             const reason = interaction.options.getString("reason") || "No reason provided.";
             const userId = await getUserIdFromUsername(username);
-            const Db = await require("../utils").getJsonBin();
-            const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
+
+            const Db = await getJsonBin();
+            const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
+            if (!GroupId) return interaction.reply({ content: "Group ID not set. Run /config first.", ephemeral: true });
 
             await exileUser(GroupId, userId);
 
