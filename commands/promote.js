@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { getCurrentRank, getNextRank, setRank, getUserIdFromUsername } = require("../roblox");
+const { getCurrentRank, getNextRank, setRank, getUserIdFromUsername, fetchRoles } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin } = require("../utils");
@@ -27,7 +27,13 @@ module.exports = {
 
             const currentRank = await getCurrentRank(GroupId, userId);
             const nextRank = await getNextRank(GroupId, currentRank);
-            if (!nextRank) return interaction.editReply({ content: `${username} is already at the highest rank.` });
+
+            if (!nextRank || typeof nextRank.id !== "number") {
+                const roles = await fetchRoles(GroupId);
+                const higherRoles = roles.filter(r => r.rank > currentRank);
+                if (!higherRoles.length) return interaction.editReply({ content: `${username} is already at the highest rank.` });
+                nextRank = higherRoles[0];
+            }
 
             await setRank(GroupId, userId, nextRank.id, interaction.user.username);
 
@@ -43,6 +49,7 @@ module.exports = {
 
             await interaction.editReply({ embeds: [embed] });
             await logAction(interaction, embed);
+
         } catch (err) {
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
