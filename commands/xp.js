@@ -7,15 +7,10 @@ const DebugChannelId = "1437041869300437103";
 
 async function sendDebug(client, message) {
   if (!client?.channels) return;
-
   try {
-    const channel = await client.channels.fetch(DebugChannelId);
-    if (channel && channel.isTextBased()) {
-      await channel.send(`${message}`);
-    }
-  } catch (err) {
-    console.error("Failed to send debug message:", err);
-  }
+    const channel = await client.channels.fetch(DebugChannelId).catch(() => null);
+    if (channel?.isTextBased()) await channel.send(message);
+  } catch {}
 }
 
 module.exports = {
@@ -37,9 +32,7 @@ module.exports = {
       .setName("permission")
       .setDescription("Set ranks that can give XP")
       .addRoleOption(opt => opt.setName("role").setDescription("Role allowed to give XP").setRequired(true)))
-    .addSubcommand(sub => sub
-      .setName("permission_remove")
-      .setDescription("Remove ranks allowed to give XP"))
+    .addSubcommand(sub => sub.setName("permission_remove").setDescription("Remove ranks allowed to give XP"))
     .addSubcommand(sub => sub
       .setName("name")
       .setDescription("Set a custom name for XP")
@@ -48,13 +41,11 @@ module.exports = {
       .setName("channel")
       .setDescription("Set the logging channel for XP")
       .addChannelOption(opt => opt.setName("channel").setDescription("Channel to log XP").setRequired(true))),
-
+  
   async execute(interaction, client) {
     const Db = await getJsonBin();
     const GuildId = interaction.guild.id;
     const Subcommand = interaction.options.getSubcommand();
-
-    await sendDebug(client, `XP command executed: ${Subcommand} by ${interaction.user.tag}`);
 
     if (Subcommand === "setup") {
       const Allowed = await checkCommandRole(interaction, "config");
@@ -63,13 +54,10 @@ module.exports = {
       return interaction.reply({
         content: "Are you sure you want to set up your group ranks with XP?",
         components: [
-          {
-            type: 1,
-            components: [
-              { type: 2, label: "Yes", style: 3, custom_id: "xp_yes" },
-              { type: 2, label: "No", style: 4, custom_id: "xp_no" }
-            ]
-          }
+          { type: 1, components: [
+            { type: 2, label: "Yes", style: 3, custom_id: "xp_yes" },
+            { type: 2, label: "No", style: 4, custom_id: "xp_no" }
+          ]}
         ],
         ephemeral: true
       });
@@ -85,12 +73,8 @@ module.exports = {
       try {
         let UserId;
         for (let i = 0; i < 3; i++) {
-          try {
-            UserId = await getRobloxUserId(Username);
-            break;
-          } catch (err) {
-            if (i === 2) throw err;
-          }
+          try { UserId = await getRobloxUserId(Username); break; } 
+          catch (err) { if (i === 2) throw err; }
         }
 
         Db.XP = Db.XP || {};
@@ -98,10 +82,9 @@ module.exports = {
         Db.XP[GuildId][UserId] = Db.XP[GuildId][UserId] || { Amount: 0 };
 
         if (Subcommand === "add") Db.XP[GuildId][UserId].Amount += Amount;
-        if (Subcommand === "remove") Db.XP[GuildId][UserId].Amount = Math.max(Db.XP[GuildId][UserId].Amount - Amount, 0);
+        else Db.XP[GuildId][UserId].Amount = Math.max(Db.XP[GuildId][UserId].Amount - Amount, 0);
 
         await saveJsonBin(Db);
-
         return interaction.reply({ content: `${Subcommand === "add" ? "Added" : "Removed"} ${Amount} XP ${Subcommand === "add" ? "to" : "from"} ${Username}.`, ephemeral: true });
       } catch (err) {
         return interaction.reply({ content: `Failed to fetch Roblox data: ${err.message}`, ephemeral: true });
@@ -119,7 +102,6 @@ module.exports = {
       Db.XP[GuildId] = Db.XP[GuildId] || {};
       Db.XP[GuildId].PermissionRole = Role.id;
       await saveJsonBin(Db);
-
       return interaction.reply({ content: `XP permission role set to ${Role}`, ephemeral: true });
     }
 
@@ -132,7 +114,6 @@ module.exports = {
         const Role = interaction.guild.roles.cache.get(Db.XP[GuildId].PermissionRole);
         if (Role) XPRoles.push({ label: Role.name, value: Role.id });
       }
-
       if (!XPRoles.length) return interaction.reply({ content: "No roles have XP permission.", ephemeral: true });
 
       const Menu = new StringSelectMenuBuilder()
@@ -150,12 +131,10 @@ module.exports = {
       if (!Allowed) return interaction.reply({ content: "No permission.", ephemeral: true });
 
       const XPName = interaction.options.getString("xpname");
-
       Db.XP = Db.XP || {};
       Db.XP[GuildId] = Db.XP[GuildId] || {};
       Db.XP[GuildId].Name = XPName;
       await saveJsonBin(Db);
-
       return interaction.reply({ content: `XP name set to ${XPName}`, ephemeral: true });
     }
 
@@ -164,12 +143,10 @@ module.exports = {
       if (!Allowed) return interaction.reply({ content: "No permission.", ephemeral: true });
 
       const Channel = interaction.options.getChannel("channel");
-
       Db.XP = Db.XP || {};
       Db.XP[GuildId] = Db.XP[GuildId] || {};
       Db.XP[GuildId].LogChannel = Channel.id;
       await saveJsonBin(Db);
-
       return interaction.reply({ content: `XP logs will now be sent in ${Channel}`, ephemeral: true });
     }
   }
