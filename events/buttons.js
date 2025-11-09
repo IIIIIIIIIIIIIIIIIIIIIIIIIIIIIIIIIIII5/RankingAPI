@@ -158,24 +158,23 @@ module.exports = async function handleButton(interaction, client) {
             return;
         }
 
-        if (interaction.isModalSubmit() && CustomId.startsWith("xpmodal_")) {
+        if (interaction.isModalSubmit() && interaction.customId.startsWith("xpmodal_")) {
             await interaction.deferReply({ ephemeral: true });
 
-            const RoleId = CustomId.split("_")[1];
+            const RoleId = interaction.customId.split("_")[1];
+            const Session = SetupSessions[interaction.guild.id];
+            if (!Session) { await interaction.editReply({ content: "XP setup expired." }); return; }
+
             const ValueRaw = interaction.fields.getTextInputValue("xp_value");
             const Value = parseInt(ValueRaw);
-
             if (isNaN(Value)) { await interaction.editReply({ content: "Invalid XP value." }); return; }
-
-            const Session = SetupSessions[GuildId];
-            if (!Session) { await interaction.editReply({ content: "XP setup expired." }); return; }
 
             Session.Ranks[RoleId] = Value;
             Session.SetupIndex++;
 
             if (Session.SetupIndex >= Session.SetupRoles.length) {
-                Db.XP[GuildId] = { Ranks: Session.Ranks };
-                delete SetupSessions[GuildId];
+                Db.XP[interaction.guild.id] = { Ranks: Session.Ranks };
+                delete SetupSessions[interaction.guild.id];
                 await saveJsonBin(Db);
                 await interaction.editReply({ content: "XP setup complete!" });
                 return;
