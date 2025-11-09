@@ -1,6 +1,6 @@
 const { getJsonBin, saveJsonBin } = require("../utils");
 const { leaveGroup, fetchRoles } = require("../roblox");
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 module.exports = async function handleButton(interaction, client) {
     if (!interaction.isButton() && !interaction.isModalSubmit() && !interaction.isStringSelectMenu()) return;
@@ -17,8 +17,7 @@ module.exports = async function handleButton(interaction, client) {
     if ((match = customId.match(/^(accept|decline)_(\d+)$/))) {
         actionType = match[1];
         GroupId = match[2];
-    }
-    else if ((match = customId.match(/^remove_(accept|decline)_(\d+)$/))) {
+    } else if ((match = customId.match(/^remove_(accept|decline)_(\d+)$/))) {
         actionType = match[1] === "accept" ? "remove_accept" : "remove_decline";
         GroupId = match[2];
     }
@@ -68,9 +67,7 @@ module.exports = async function handleButton(interaction, client) {
         if (!GroupId) return interaction.update({ content: "Group ID not configured.", components: [] });
 
         let roles;
-        try {
-            roles = await fetchRoles(GroupId);
-        } catch (err) {
+        try { roles = await fetchRoles(GroupId); } catch (err) {
             return interaction.update({ content: `Failed to fetch roles. ${err.message}`, components: [] });
         }
 
@@ -83,7 +80,6 @@ module.exports = async function handleButton(interaction, client) {
         await saveJsonBin(Db);
 
         const role = roles[0];
-
         return interaction.update({
             content: `Rank: **${role.name}**`,
             components: [
@@ -95,9 +91,7 @@ module.exports = async function handleButton(interaction, client) {
         });
     }
 
-    if (customId === "xp_no") {
-        return interaction.update({ content: "XP setup cancelled.", components: [] });
-    }
+    if (customId === "xp_no") return interaction.update({ content: "XP setup cancelled.", components: [] });
 
     if (customId.startsWith("editxp_")) {
         const roleId = customId.split("_")[1];
@@ -123,7 +117,6 @@ module.exports = async function handleButton(interaction, client) {
     if (customId.startsWith("skipxp_")) {
         const xpData = Db.XP[guildId];
         xpData._setupIndex += 1;
-
         await saveJsonBin(Db);
 
         if (xpData._setupIndex >= xpData._setupRoles.length) {
@@ -134,7 +127,6 @@ module.exports = async function handleButton(interaction, client) {
         }
 
         const next = xpData._setupRoles[xpData._setupIndex];
-
         return interaction.update({
             content: `Rank: **${next.name}**`,
             components: [
@@ -153,7 +145,6 @@ module.exports = async function handleButton(interaction, client) {
         const xpData = Db.XP[guildId];
         xpData.Ranks[roleId] = xpValue;
         xpData._setupIndex += 1;
-
         await saveJsonBin(Db);
 
         if (xpData._setupIndex >= xpData._setupRoles.length) {
@@ -164,18 +155,14 @@ module.exports = async function handleButton(interaction, client) {
         }
 
         const next = xpData._setupRoles[xpData._setupIndex];
-
-        await interaction.reply({ content: `XP set to **${xpValue}**`, ephemeral: true });
-
-        return interaction.followUp({
+        return interaction.update({
             content: `Rank: **${next.name}**`,
             components: [
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId(`editxp_${next.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
                     new ButtonBuilder().setCustomId(`skipxp_${next.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
                 )
-            ],
-            ephemeral: true
+            ]
         });
     }
 
@@ -186,7 +173,6 @@ module.exports = async function handleButton(interaction, client) {
         for (const r of selected) {
             if (Db.XP[guildId].PermissionRole === r) delete Db.XP[guildId].PermissionRole;
         }
-
         await saveJsonBin(Db);
         return interaction.update({ content: "Removed XP role permissions.", components: [] });
     }
