@@ -1,4 +1,4 @@
-const { getJsonBin, saveJsonBin } = require("../firestore");
+const { getJsonBin, saveJsonBin } = require("../utils");
 const { leaveGroup, fetchRoles } = require("../roblox");
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
