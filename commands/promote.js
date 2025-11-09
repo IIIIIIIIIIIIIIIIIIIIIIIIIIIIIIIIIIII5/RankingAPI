@@ -14,10 +14,10 @@ module.exports = {
         const allowed = await checkCommandRole(interaction, "promote");
         if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
 
-        try {
-            await interaction.deferReply();
+        await interaction.deferReply();
 
-            const username = interaction.options.getString("username");
+        try {
+            const username = interaction.options.getString("username").trim();
             const userId = await getUserIdFromUsername(username);
             if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
@@ -28,7 +28,6 @@ module.exports = {
             const currentRank = await getCurrentRank(GroupId, userId);
             const roles = await fetchRoles(GroupId);
             const nextRole = roles.find(r => r.rank > currentRank);
-
             if (!nextRole) return interaction.editReply({ content: `${username} is already at the highest rank.` });
 
             await setRank(GroupId, userId, nextRole.id, interaction.user.username);
