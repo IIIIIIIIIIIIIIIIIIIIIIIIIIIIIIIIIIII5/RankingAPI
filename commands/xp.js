@@ -3,16 +3,6 @@ const { checkCommandRole } = require("../roleCheck");
 const { getJsonBin, saveJsonBin } = require("../utils");
 const { getRobloxUserId } = require("../roblox");
 
-const DebugChannelId = "1437041869300437103";
-
-async function sendDebug(client, message) {
-  if (!client?.channels) return;
-  try {
-    const channel = await client.channels.fetch(DebugChannelId).catch(() => null);
-    if (channel?.isTextBased()) await channel.send(message);
-  } catch {}
-}
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("xp")
@@ -41,7 +31,7 @@ module.exports = {
       .setName("channel")
       .setDescription("Set the logging channel for XP")
       .addChannelOption(opt => opt.setName("channel").setDescription("Channel to log XP").setRequired(true))),
-  
+
   async execute(interaction, client) {
     const Db = await getJsonBin();
     const GuildId = interaction.guild.id;
