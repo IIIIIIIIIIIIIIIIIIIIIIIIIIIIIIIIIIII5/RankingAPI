@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { getCurrentRank, getNextRank, setRank, getUserIdFromUsername, fetchRoles } = require("../roblox");
+const { getCurrentRank, fetchRoles, setRank, getUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin } = require("../utils");
@@ -26,23 +26,19 @@ module.exports = {
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
             const currentRank = await getCurrentRank(GroupId, userId);
-            const nextRank = await getNextRank(GroupId, currentRank);
+            const roles = await fetchRoles(GroupId);
+            const nextRole = roles.find(r => r.rank > currentRank);
 
-            if (!nextRank || typeof nextRank.id !== "number") {
-                const roles = await fetchRoles(GroupId);
-                const higherRoles = roles.filter(r => r.rank > currentRank);
-                if (!higherRoles.length) return interaction.editReply({ content: `${username} is already at the highest rank.` });
-                nextRank = higherRoles[0];
-            }
+            if (!nextRole) return interaction.editReply({ content: `${username} is already at the highest rank.` });
 
-            await setRank(GroupId, userId, nextRank.id, interaction.user.username);
+            await setRank(GroupId, userId, nextRole.id, interaction.user.username);
 
             const embed = new EmbedBuilder()
                 .setColor(0x2ecc71)
                 .setTitle("Promoted")
                 .addFields(
                     { name: "User", value: username, inline: true },
-                    { name: "New Rank", value: nextRank.name, inline: true },
+                    { name: "New Rank", value: nextRole.name, inline: true },
                     { name: "Issued By", value: interaction.user.tag, inline: true },
                     { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                 );
