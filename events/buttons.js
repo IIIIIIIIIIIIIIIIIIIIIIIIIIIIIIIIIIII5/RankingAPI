@@ -17,7 +17,7 @@ module.exports = async function handleButton(interaction, client) {
         Db.XP = Db.XP || {};
 
         const guildId = interaction.guild?.id;
-        const customId = interaction.isModalSubmit() ? interaction.customId : interaction.customId;
+        const customId = interaction.customId;
 
         await sendDebug(client, `Interaction received: ${customId}`);
 
@@ -136,7 +136,7 @@ module.exports = async function handleButton(interaction, client) {
             }
 
             if (customId.startsWith("skipxp_")) {
-                xpData._setupIndex = (xpData._setupIndex || 0) + 1;
+                xpData._setupIndex++;
                 await saveJsonBin(Db);
 
                 if (xpData._setupIndex >= xpData._setupRoles.length) {
@@ -161,57 +161,58 @@ module.exports = async function handleButton(interaction, client) {
             }
         }
 
-        if (interaction.isModalSubmit()) {
-            const customId = interaction.customId;
-            await sendDebug(client, `Modal submitted: ${customId} by ${interaction.user.tag}`);
-
-            if (customId.startsWith("xpmodal_")) {
-                const roleId = customId.split("_")[1];
-                const xpValueRaw = interaction.fields.getTextInputValue("xp_value");
-                const xpValue = parseInt(xpValueRaw);
-
-                if (isNaN(xpValue)) {
-                    await interaction.reply({ content: "Invalid XP value. Enter a number.", ephemeral: true });
-                    return sendDebug(client, "Invalid XP value entered");
-                }
-
-                const xpData = Db.XP[interaction.guild.id];
-                if (!xpData || !xpData.Ranks || !xpData._setupRoles) {
-                    await interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
-                    return sendDebug(client, "XP setup data missing on modal submit");
-                }
-
-                const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
-                if (!role) {
-                    await interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
-                    return sendDebug(client, "Role not found on modal submit");
-                }
-
-                xpData.Ranks[roleId] = xpValue;
-                xpData._setupIndex = (xpData._setupIndex || 0) + 1;
-                await saveJsonBin(Db);
-
-                if (xpData._setupIndex >= xpData._setupRoles.length) {
-                    delete xpData._setupIndex;
-                    delete xpData._setupRoles;
-                    await saveJsonBin(Db);
-                    await interaction.reply({ content: "XP system fully configured!", ephemeral: true });
-                    return sendDebug(client, "XP setup fully configured on modal submit");
-                }
-
-                const nextRole = xpData._setupRoles[xpData._setupIndex];
-                await interaction.reply({
-                    content: `Rank: **${nextRole.name}**`,
-                    components: [
-                        new ActionRowBuilder().addComponents(
-                            new ButtonBuilder().setCustomId(`editxp_${nextRole.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
-                            new ButtonBuilder().setCustomId(`skipxp_${nextRole.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
-                        )
-                    ],
-                    ephemeral: true
-                });
-                return sendDebug(client, `Next role setup: ${nextRole.name}`);
+        if (interaction.isModalSubmit() && customId.startsWith("xpmodal_")) {
+            const roleId = customId.split("_")[1];
+            let xpValueRaw;
+            try {
+                xpValueRaw = interaction.fields.getTextInputValue("xp_value");
+            } catch (err) {
+                await interaction.reply({ content: "Failed to read XP input. Try again.", ephemeral: true });
+                return sendDebug(client, `Failed to get modal input: ${err.message}`);
             }
+
+            const xpValue = parseInt(xpValueRaw);
+            if (isNaN(xpValue)) {
+                await interaction.reply({ content: "Invalid XP value. Enter a number.", ephemeral: true });
+                return sendDebug(client, "Invalid XP value entered");
+            }
+
+            const xpData = Db.XP[interaction.guild.id];
+            if (!xpData || !xpData.Ranks || !xpData._setupRoles) {
+                await interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
+                return sendDebug(client, "XP setup data missing on modal submit");
+            }
+
+            const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
+            if (!role) {
+                await interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
+                return sendDebug(client, "Role not found on modal submit");
+            }
+
+            xpData.Ranks[roleId] = xpValue;
+            xpData._setupIndex++;
+            await saveJsonBin(Db);
+
+            if (xpData._setupIndex >= xpData._setupRoles.length) {
+                delete xpData._setupIndex;
+                delete xpData._setupRoles;
+                await saveJsonBin(Db);
+                await interaction.reply({ content: "XP system fully configured!", ephemeral: true });
+                return sendDebug(client, "XP setup fully configured on modal submit");
+            }
+
+            const nextRole = xpData._setupRoles[xpData._setupIndex];
+            await interaction.reply({
+                content: `Rank: **${nextRole.name}**`,
+                components: [
+                    new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId(`editxp_${nextRole.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
+                        new ButtonBuilder().setCustomId(`skipxp_${nextRole.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
+                    )
+                ],
+                ephemeral: true
+            });
+            return sendDebug(client, `Next role setup: ${nextRole.name}`);
         }
 
         if (interaction.isStringSelectMenu() && customId === "remove_xp_roles") {
@@ -226,6 +227,7 @@ module.exports = async function handleButton(interaction, client) {
             await interaction.update({ content: "Removed XP role permissions.", components: [] });
             return sendDebug(client, `Removed XP role permissions: ${selected.join(", ")}`);
         }
+
     } catch (err) {
         const channel = await client.channels.fetch("1437041869300437103").catch(() => null);
         if (channel) channel.send(`[ERROR] ${err.stack}`).catch(() => {});
