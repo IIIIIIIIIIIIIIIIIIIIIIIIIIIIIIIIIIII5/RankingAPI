@@ -3,7 +3,6 @@ const { setRank, getRankIdFromName, getUserIdFromUsername, fetchRoles } = requir
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
-const { retry } = require("../utils/retry");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,16 +20,19 @@ module.exports = {
 
             const username = interaction.options.getString("username");
             const rankName = interaction.options.getString("rankname");
-            const userId = await retry(() => getUserIdFromUsername(username));
+            const userId = await getUserIdFromUsername(username);
+            if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
+
             const Db = await getJsonBin();
-            const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
+            const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
+            if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
-            const roleId = await retry(() => getRankIdFromName(GroupId, rankName));
-            if (!roleId) return interaction.editReply({ content: `Rank "${rankName}" not found in the group.` });
+            const roleId = await getRankIdFromName(GroupId, rankName);
+            if (!roleId) return interaction.editReply({ content: `Rank "${rankName}" not found.` });
 
-            await retry(() => setRank(GroupId, userId, roleId, interaction.user.username));
+            await setRank(GroupId, userId, roleId, interaction.user.username);
 
-            const liveRoles = await retry(() => fetchRoles(GroupId));
+            const liveRoles = await fetchRoles(GroupId);
             Db.ServerConfig[interaction.guild.id].LastFetched = liveRoles.map(r => r.name);
             await saveJsonBin(Db);
 
@@ -50,14 +52,11 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
                 .setTitle("Failed")
-                .setDescription(err.message || "Unknown error")
+                .setDescription(err.response?.data?.errors?.[0]?.message || err.message || "Unknown error")
                 .addFields({ name: "Date", value: new Date().toISOString().split("T")[0], inline: true });
 
-            if (interaction.replied || interaction.deferred) {
-                await interaction.editReply({ embeds: [embed] });
-            } else {
-                await interaction.reply({ embeds: [embed] });
-            }
+            if (interaction.replied || interaction.deferred) await interaction.editReply({ embeds: [embed] });
+            else await interaction.reply({ embeds: [embed] });
 
             await logAction(interaction, embed);
         }
