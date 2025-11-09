@@ -29,32 +29,37 @@ module.exports = async function handleButton(interaction, client) {
         const requester = await client.users.fetch(pending.requesterId).catch(() => null);
         const guildIdPending = pending.guildId;
 
-        const respondAndSave = async (msg) => {
+        if (actionType === "accept") {
+            Db.ServerConfig[guildIdPending] = { GroupId: Number(GroupId) };
+            delete Db.PendingApprovals[GroupId];
             await saveJsonBin(Db);
-            return interaction.update({ content: msg, components: [] });
-        };
-
-        switch (actionType) {
-            case "accept":
-                Db.ServerConfig[guildIdPending] = { GroupId: Number(GroupId) };
-                delete Db.PendingApprovals[GroupId];
-                if (requester) requester.send(`Your group configuration for ID ${GroupId} has been approved.`).catch(() => {});
-                return respondAndSave(`Configuration approved. Group ID ${GroupId} is now set.`);
-            case "decline":
-                delete Db.PendingApprovals[GroupId];
-                if (requester) requester.send(`Your group configuration for ID ${GroupId} has been declined.`).catch(() => {});
-                return respondAndSave(`Configuration request for Group ID ${GroupId} declined.`);
-            case "remove_accept":
-                delete Db.ServerConfig[guildIdPending];
-                delete Db.PendingApprovals[GroupId];
-                await leaveGroup(GroupId).catch(() => {});
-                if (requester) requester.send(`Your group removal request has been approved.`).catch(() => {});
-                return respondAndSave(`Removal request approved. Group ID ${GroupId} has been removed.`);
-            case "remove_decline":
-                delete Db.PendingApprovals[GroupId];
-                if (requester) requester.send(`Your group removal request has been declined.`).catch(() => {});
-                return respondAndSave(`Removal request for Group ID ${GroupId} declined.`);
+            if (requester) requester.send(`Your group configuration for ID ${GroupId} has been approved.`).catch(() => {});
+            return interaction.update({ content: `Configuration approved. Group ID ${GroupId} is now set.`, components: [] });
         }
+
+        if (actionType === "decline") {
+            delete Db.PendingApprovals[GroupId];
+            await saveJsonBin(Db);
+            if (requester) requester.send(`Your group configuration for ID ${GroupId} has been declined.`).catch(() => {});
+            return interaction.update({ content: `Configuration request for Group ID ${GroupId} declined.`, components: [] });
+        }
+
+        if (actionType === "remove_accept") {
+            delete Db.ServerConfig[guildIdPending];
+            delete Db.PendingApprovals[GroupId];
+            await saveJsonBin(Db);
+            await leaveGroup(GroupId).catch(() => {});
+            if (requester) requester.send(`Your group removal request has been approved.`).catch(() => {});
+            return interaction.update({ content: `Removal request approved. Group ID ${GroupId} has been removed.`, components: [] });
+        }
+
+        if (actionType === "remove_decline") {
+            delete Db.PendingApprovals[GroupId];
+            await saveJsonBin(Db);
+            if (requester) requester.send(`Your group removal request has been declined.`).catch(() => {});
+            return interaction.update({ content: `Removal request for Group ID ${GroupId} declined.`, components: [] });
+        }
+        return;
     }
 
     if (customId === "xp_yes") {
@@ -69,8 +74,13 @@ module.exports = async function handleButton(interaction, client) {
         }
 
         roles = roles.filter(r => r.name.toLowerCase() !== "guest");
+        if (!roles.length) return interaction.update({ content: "No roles found for this group.", components: [] });
 
-        Db.XP[guildId] = { _setupIndex: 0, _setupRoles: roles, Ranks: {} };
+        Db.XP[guildId] = {
+            _setupIndex: 0,
+            _setupRoles: roles,
+            Ranks: {}
+        };
         await saveJsonBin(Db);
 
         const firstRole = roles[0];
@@ -89,56 +99,58 @@ module.exports = async function handleButton(interaction, client) {
         return interaction.update({ content: "XP setup cancelled.", components: [] });
     }
 
-    if (customId.startsWith("editxp_")) {
-        const roleId = customId.split("_")[1];
+    if (customId.startsWith("editxp_") || customId.startsWith("skipxp_")) {
         const xpData = Db.XP[guildId];
-        const role = xpData?._setupRoles?.find(r => r.id === roleId);
-        if (!role) return interaction.reply({ content: "Role not found.", ephemeral: true });
-
-        const modal = new ModalBuilder()
-            .setCustomId(`xpmodal_${roleId}`)
-            .setTitle(`Set XP for ${role.name}`)
-            .addComponents(
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId("xp_value")
-                        .setLabel("XP amount")
-                        .setStyle(TextInputStyle.Short)
-                        .setRequired(true)
-                )
-            );
-
-        return interaction.showModal(modal);
-    }
-
-    if (customId.startsWith("skipxp_")) {
-        const xpData = Db.XP[guildId];
-        if (!xpData?._setupRoles) return interaction.reply({ content: "XP setup data missing.", ephemeral: true });
-
-        xpData._setupIndex += 1;
-        await saveJsonBin(Db);
-
-        if (xpData._setupIndex >= xpData._setupRoles.length) {
-            delete xpData._setupIndex;
-            delete xpData._setupRoles;
-            await saveJsonBin(Db);
-            return interaction.update({ content: "XP system fully configured!", components: [] });
+        if (!xpData || !xpData._setupRoles || !Array.isArray(xpData._setupRoles) || xpData._setupRoles.length === 0) {
+            return interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
         }
 
-        const nextRole = xpData._setupRoles[xpData._setupIndex];
-        return interaction.update({
-            content: `Rank: **${nextRole.name}**`,
-            components: [
-                new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`editxp_${nextRole.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`skipxp_${nextRole.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
-                )
-            ]
-        });
+        const roleId = customId.split("_")[1];
+        const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
+        if (!role) return interaction.reply({ content: "Role not found. Please restart the XP setup.", ephemeral: true });
+
+        if (customId.startsWith("editxp_")) {
+            const modal = new ModalBuilder()
+                .setCustomId(`xpmodal_${roleId}`)
+                .setTitle(`Set XP for ${role.name}`)
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId("xp_value")
+                            .setLabel("XP amount")
+                            .setStyle(TextInputStyle.Short)
+                            .setRequired(true)
+                    )
+                );
+            return interaction.showModal(modal);
+        }
+
+        if (customId.startsWith("skipxp_")) {
+            xpData._setupIndex += 1;
+            await saveJsonBin(Db);
+
+            if (xpData._setupIndex >= xpData._setupRoles.length) {
+                delete xpData._setupIndex;
+                delete xpData._setupRoles;
+                await saveJsonBin(Db);
+                return interaction.update({ content: "XP system fully configured!", components: [] });
+            }
+
+            const nextRole = xpData._setupRoles[xpData._setupIndex];
+            return interaction.update({
+                content: `Rank: **${nextRole.name}**`,
+                components: [
+                    new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId(`editxp_${nextRole.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
+                        new ButtonBuilder().setCustomId(`skipxp_${nextRole.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
+                    )
+                ]
+            });
+        }
     }
 
-    if (interaction.isModalSubmit() && interaction.customId.startsWith("xpmodal_")) {
-        const roleId = interaction.customId.split("_")[1];
+    if (interaction.isModalSubmit() && customId.startsWith("xpmodal_")) {
+        const roleId = customId.split("_")[1];
         const xpValueRaw = interaction.fields.getTextInputValue("xp_value");
         const xpValue = parseInt(xpValueRaw);
 
@@ -177,10 +189,14 @@ module.exports = async function handleButton(interaction, client) {
 
     if (interaction.isStringSelectMenu() && customId === "remove_xp_roles") {
         const selected = interaction.values;
-        if (!Db.XP[guildId]) return interaction.update({ content: "No XP roles configured.", components: [] });
+        if (!Db.XP[guildId]) {
+            return interaction.update({ content: "No XP roles configured.", components: [] });
+        }
 
         for (const r of selected) {
-            if (Db.XP[guildId].PermissionRole === r) delete Db.XP[guildId].PermissionRole;
+            if (Db.XP[guildId].PermissionRole === r) {
+                delete Db.XP[guildId].PermissionRole;
+            }
         }
 
         await saveJsonBin(Db);
