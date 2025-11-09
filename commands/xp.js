@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 const { checkCommandRole } = require("../roleCheck");
-const { getJsonBin, saveJsonBin } = require("../firestore");
+const { getJsonBin, saveJsonBin } = require("../utils");
 const { getRobloxUserId } = require("../roblox");
 
 const DebugChannelId = "1437041869300437103";
