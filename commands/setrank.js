@@ -14,7 +14,7 @@ module.exports = {
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "setrank");
         if (!allowed) 
-            return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
+            return interaction.reply({ content: "You don't have permission to use this command.", flags: 64 });
 
         try {
             await interaction.deferReply();
@@ -26,8 +26,7 @@ module.exports = {
             const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
 
             const roleId = await getRankIdFromName(GroupId, rankName);
-            if (!roleId) 
-                return interaction.editReply({ content: `Rank "${rankName}" not found in the group.` });
+            if (!roleId) return interaction.editReply({ content: `Rank "${rankName}" not found in the group.` });
 
             await setRank(GroupId, userId, roleId, interaction.user.username);
 
