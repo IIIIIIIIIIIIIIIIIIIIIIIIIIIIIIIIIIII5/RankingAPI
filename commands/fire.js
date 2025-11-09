@@ -12,12 +12,10 @@ module.exports = {
 
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "fire");
-        if (!allowed)
-            return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
+        if (!allowed) return interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
 
         const db = await getJsonBin();
-        if (!db.ServerConfig?.[interaction.guild.id])
-            return interaction.reply({ content: "Group ID not set. Run /config first.", ephemeral: true });
+        if (!db.ServerConfig?.[interaction.guild.id]) return interaction.reply({ content: "Group ID not set. Run /config first.", ephemeral: true });
 
         const groupId = db.ServerConfig[interaction.guild.id].GroupId;
         const username = interaction.options.getString("username");
@@ -26,8 +24,8 @@ module.exports = {
         try {
             const userId = await getRobloxUserId(username);
             const roles = await fetchRoles(groupId);
-
             const lowestRankNumber = Math.min(...Object.keys(roles).map(Number));
+
             await setRank(groupId, userId, lowestRankNumber, interaction.user.username);
 
             const embed = new EmbedBuilder()
@@ -44,10 +42,7 @@ module.exports = {
 
             await interaction.reply({ embeds: [embed] });
         } catch (err) {
-            await interaction.reply({
-                content: `Failed to fire user: ${err.message || "Unknown error"}`,
-                ephemeral: true
-            });
+            await interaction.reply({ content: `Failed to fire user: ${err.message || "Unknown error"}`, ephemeral: true });
         }
     }
 };
