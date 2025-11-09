@@ -6,8 +6,16 @@ const { getRobloxUserId } = require("../roblox");
 const DebugChannelId = "1437041869300437103";
 
 async function sendDebug(client, message) {
-  const Channel = await client.channels.fetch(DebugChannelId).catch(() => null);
-  if (Channel) Channel.send(`[DEBUG] ${message}`).catch(() => {});
+  if (!client?.channels) return;
+
+  try {
+    const channel = await client.channels.fetch(DebugChannelId);
+    if (channel && channel.isTextBased()) {
+      await channel.send(`${message}`);
+    }
+  } catch (err) {
+    console.error("Failed to send debug message:", err);
+  }
 }
 
 module.exports = {
