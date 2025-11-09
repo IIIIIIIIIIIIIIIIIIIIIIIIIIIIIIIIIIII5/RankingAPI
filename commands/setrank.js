@@ -3,6 +3,7 @@ const { setRank, getRankIdFromName, getUserIdFromUsername, fetchRoles } = requir
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
+const { retry } = require("../utils/retry");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,24 +14,23 @@ module.exports = {
 
     async execute(interaction) {
         const allowed = await checkCommandRole(interaction, "setrank");
-        if (!allowed) 
-            return interaction.reply({ content: "You don't have permission to use this command.", flags: 64 });
+        if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
 
         try {
             await interaction.deferReply();
 
             const username = interaction.options.getString("username");
             const rankName = interaction.options.getString("rankname");
-            const userId = await getUserIdFromUsername(username);
+            const userId = await retry(() => getUserIdFromUsername(username));
             const Db = await getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
 
-            const roleId = await getRankIdFromName(GroupId, rankName);
+            const roleId = await retry(() => getRankIdFromName(GroupId, rankName));
             if (!roleId) return interaction.editReply({ content: `Rank "${rankName}" not found in the group.` });
 
-            await setRank(GroupId, userId, roleId, interaction.user.username);
+            await retry(() => setRank(GroupId, userId, roleId, interaction.user.username));
 
-            const liveRoles = await fetchRoles(GroupId);
+            const liveRoles = await retry(() => fetchRoles(GroupId));
             Db.ServerConfig[interaction.guild.id].LastFetched = liveRoles.map(r => r.name);
             await saveJsonBin(Db);
 
