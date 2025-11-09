@@ -154,14 +154,15 @@ module.exports = async function handleButton(interaction, client) {
         const xpValueRaw = interaction.fields.getTextInputValue("xp_value");
         const xpValue = parseInt(xpValueRaw);
 
+        if (isNaN(xpValue)) return interaction.reply({ content: "Invalid XP value. Enter a number.", ephemeral: true });
+
         const xpData = Db.XP[guildId];
         if (!xpData || !xpData.Ranks || !xpData._setupRoles) {
             return interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
         }
 
-        if (isNaN(xpValue)) {
-            return interaction.reply({ content: "Invalid XP value. Please enter a number.", ephemeral: true });
-        }
+        const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
+        if (!role) return interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
 
         xpData.Ranks[roleId] = xpValue;
         xpData._setupIndex = (xpData._setupIndex || 0) + 1;
