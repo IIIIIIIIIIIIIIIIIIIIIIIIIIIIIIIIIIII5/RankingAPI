@@ -126,7 +126,7 @@ module.exports = async function handleButton(interaction, client) {
         }
 
         if (customId.startsWith("skipxp_")) {
-            xpData._setupIndex += 1;
+            xpData._setupIndex = (xpData._setupIndex || 0) + 1;
             await saveJsonBin(Db);
 
             if (xpData._setupIndex >= xpData._setupRoles.length) {
@@ -155,7 +155,7 @@ module.exports = async function handleButton(interaction, client) {
         const xpValue = parseInt(xpValueRaw);
 
         const xpData = Db.XP[guildId];
-        if (!xpData || !xpData._setupRoles || !xpData.Ranks) {
+        if (!xpData || !xpData.Ranks || !xpData._setupRoles) {
             return interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
         }
 
@@ -164,7 +164,7 @@ module.exports = async function handleButton(interaction, client) {
         }
 
         xpData.Ranks[roleId] = xpValue;
-        xpData._setupIndex += 1;
+        xpData._setupIndex = (xpData._setupIndex || 0) + 1;
         await saveJsonBin(Db);
 
         if (xpData._setupIndex >= xpData._setupRoles.length) {
