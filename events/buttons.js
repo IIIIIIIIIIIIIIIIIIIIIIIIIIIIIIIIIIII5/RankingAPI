@@ -101,13 +101,11 @@ module.exports = async function handleButton(interaction, client) {
 
     if (customId.startsWith("editxp_") || customId.startsWith("skipxp_")) {
         const xpData = Db.XP[guildId];
-        if (!xpData || !xpData._setupRoles || !Array.isArray(xpData._setupRoles) || xpData._setupRoles.length === 0) {
-            return interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
-        }
+        if (!xpData || !xpData._setupRoles?.length) return interaction.reply({ content: "XP setup data missing. Restart the setup.", ephemeral: true });
 
         const roleId = customId.split("_")[1];
         const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
-        if (!role) return interaction.reply({ content: "Role not found. Please restart the XP setup.", ephemeral: true });
+        if (!role) return interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
 
         if (customId.startsWith("editxp_")) {
             const modal = new ModalBuilder()
@@ -150,54 +148,52 @@ module.exports = async function handleButton(interaction, client) {
     }
 
     if (interaction.isModalSubmit() && customId.startsWith("xpmodal_")) {
-        const roleId = customId.split("_")[1];
-        const xpValueRaw = interaction.fields.getTextInputValue("xp_value");
-        const xpValue = parseInt(xpValueRaw);
+        try {
+            const roleId = customId.split("_")[1];
+            const xpValueRaw = interaction.fields.getTextInputValue("xp_value");
+            const xpValue = parseInt(xpValueRaw);
+            if (isNaN(xpValue)) return interaction.reply({ content: "Invalid XP value. Enter a number.", ephemeral: true });
 
-        if (isNaN(xpValue)) return interaction.reply({ content: "Invalid XP value. Enter a number.", ephemeral: true });
+            const xpData = Db.XP[guildId];
+            if (!xpData || !xpData.Ranks || !xpData._setupRoles) return interaction.reply({ content: "XP setup data missing. Restart the setup.", ephemeral: true });
 
-        const xpData = Db.XP[guildId];
-        if (!xpData || !xpData.Ranks || !xpData._setupRoles) {
-            return interaction.reply({ content: "XP setup data missing. Please restart the setup.", ephemeral: true });
-        }
+            const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
+            if (!role) return interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
 
-        const role = xpData._setupRoles.find(r => r.id.toString() === roleId);
-        if (!role) return interaction.reply({ content: "Role not found. Restart the setup.", ephemeral: true });
-
-        xpData.Ranks[roleId] = xpValue;
-        xpData._setupIndex = (xpData._setupIndex || 0) + 1;
-        await saveJsonBin(Db);
-
-        if (xpData._setupIndex >= xpData._setupRoles.length) {
-            delete xpData._setupIndex;
-            delete xpData._setupRoles;
+            xpData.Ranks[roleId] = xpValue;
+            xpData._setupIndex = (xpData._setupIndex || 0) + 1;
             await saveJsonBin(Db);
-            return interaction.reply({ content: "XP system fully configured!", ephemeral: true });
-        }
 
-        const nextRole = xpData._setupRoles[xpData._setupIndex];
-        return interaction.reply({
-            content: `Rank: **${nextRole.name}**`,
-            components: [
-                new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`editxp_${nextRole.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`skipxp_${nextRole.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
-                )
-            ],
-            ephemeral: true
-        });
+            if (xpData._setupIndex >= xpData._setupRoles.length) {
+                delete xpData._setupIndex;
+                delete xpData._setupRoles;
+                await saveJsonBin(Db);
+                return interaction.reply({ content: "XP system fully configured!", ephemeral: true });
+            }
+
+            const nextRole = xpData._setupRoles[xpData._setupIndex];
+            return interaction.reply({
+                content: `Rank: **${nextRole.name}**`,
+                components: [
+                    new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId(`editxp_${nextRole.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
+                        new ButtonBuilder().setCustomId(`skipxp_${nextRole.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
+                    )
+                ],
+                ephemeral: true
+            });
+        } catch (err) {
+            console.error(err);
+            if (!interaction.replied) await interaction.reply({ content: "An error occurred.", ephemeral: true });
+        }
     }
 
     if (interaction.isStringSelectMenu() && customId === "remove_xp_roles") {
         const selected = interaction.values;
-        if (!Db.XP[guildId]) {
-            return interaction.update({ content: "No XP roles configured.", components: [] });
-        }
+        if (!Db.XP[guildId]) return interaction.update({ content: "No XP roles configured.", components: [] });
 
         for (const r of selected) {
-            if (Db.XP[guildId].PermissionRole === r) {
-                delete Db.XP[guildId].PermissionRole;
-            }
+            if (Db.XP[guildId].PermissionRole === r) delete Db.XP[guildId].PermissionRole;
         }
 
         await saveJsonBin(Db);
