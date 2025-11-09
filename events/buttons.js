@@ -10,7 +10,9 @@ async function sendMessage(client, message) {
   try {
     const channel = await client.channels.fetch(channelId);
     if (channel && channel.isTextBased()) await channel.send(`${message}`);
-  } catch (err) {}
+  } catch (err) {
+    console.error("Failed to send message:", err);
+  }
 }
 
 module.exports = async function handleButton(interaction, client) {
@@ -96,7 +98,8 @@ module.exports = async function handleButton(interaction, client) {
       }
 
       let Roles;
-      try { Roles = await fetchRoles(GroupId); } catch (err) { await interaction.editReply({ content: `Failed to fetch roles: ${err.message}` }); return; }
+      try { Roles = await fetchRoles(GroupId); } 
+      catch (err) { await interaction.editReply({ content: `Failed to fetch roles: ${err.message}` }); return; }
 
       Roles = Roles.filter(r => r.name && r.name.toLowerCase() !== "guest");
       if (!Roles.length) { await interaction.editReply({ content: "No valid roles found." }); return; }
