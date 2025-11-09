@@ -1,6 +1,6 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require("discord.js");
 const { getJsonBin, saveJsonBin } = require("../utils");
-const { leaveGroup, fetchRoles, getRobloxUserId } = require("../roblox");
+const { leaveGroup, fetchRoles } = require("../roblox");
 
 const SetupSessions = {};
 
@@ -10,20 +10,7 @@ async function sendMessage(client, message) {
   try {
     const channel = await client.channels.fetch(channelId);
     if (channel && channel.isTextBased()) await channel.send(`${message}`);
-  } catch (err) {
-    console.error("Failed to send message:", err);
-  }
-}
-
-async function retryFetch(fn, retries = 3, delay = 2000) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      await new Promise(res => setTimeout(res, delay));
-    }
-  }
+  } catch (err) {}
 }
 
 module.exports = async function handleButton(interaction, client) {
@@ -109,12 +96,7 @@ module.exports = async function handleButton(interaction, client) {
       }
 
       let Roles;
-      try {
-        Roles = await retryFetch(() => fetchRoles(GroupId));
-      } catch (err) {
-        await interaction.editReply({ content: `Failed to fetch roles: ${err.message}` });
-        return;
-      }
+      try { Roles = await fetchRoles(GroupId); } catch (err) { await interaction.editReply({ content: `Failed to fetch roles: ${err.message}` }); return; }
 
       Roles = Roles.filter(r => r.name && r.name.toLowerCase() !== "guest");
       if (!Roles.length) { await interaction.editReply({ content: "No valid roles found." }); return; }
@@ -177,15 +159,14 @@ module.exports = async function handleButton(interaction, client) {
     }
 
     if (interaction.isModalSubmit() && CustomId.startsWith("xpmodal_")) {
+      await interaction.deferReply({ ephemeral: true });
       const RoleId = CustomId.split("_")[1];
-      let ValueRaw;
-      try { ValueRaw = interaction.fields.getTextInputValue("xp_value"); } 
-      catch { ValueRaw = null; }
+      const ValueRaw = interaction.fields.getTextInputValue("xp_value");
       const Value = parseInt(ValueRaw);
-      if (!ValueRaw || isNaN(Value)) { await interaction.reply({ content: "Invalid XP value.", ephemeral: true }); return; }
+      if (isNaN(Value)) { await interaction.editReply({ content: "Invalid XP value." }); return; }
 
       const Session = SetupSessions[GuildId];
-      if (!Session) { await interaction.reply({ content: "XP setup expired.", ephemeral: true }); return; }
+      if (!Session) { await interaction.editReply({ content: "XP setup expired." }); return; }
 
       Session.Ranks[RoleId] = Value;
       Session.SetupIndex++;
@@ -194,14 +175,13 @@ module.exports = async function handleButton(interaction, client) {
         Db.XP[GuildId] = { Ranks: Session.Ranks };
         delete SetupSessions[GuildId];
         await saveJsonBin(Db);
-        await interaction.reply({ content: "XP setup complete!", ephemeral: true });
+        await interaction.editReply({ content: "XP setup complete!" });
         return;
       }
 
       const Next = Session.SetupRoles[Session.SetupIndex];
-      await interaction.followUp({
+      await interaction.editReply({
         content: `Rank: **${Next.name}**`,
-        ephemeral: true,
         components: [new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId(`editxp_${Next.id}`).setLabel("Edit XP").setStyle(ButtonStyle.Primary),
           new ButtonBuilder().setCustomId(`skipxp_${Next.id}`).setLabel("Skip").setStyle(ButtonStyle.Secondary)
@@ -226,6 +206,6 @@ module.exports = async function handleButton(interaction, client) {
   } catch (error) {
     await sendMessage(client, `Error: ${error.message}`);
     if (!interaction.replied && !interaction.deferred)
-      await interaction.reply({ content: "An error occurred. Please try again.", ephemeral: true }).catch(() => {});
+      await interaction.reply({ content: "An error occurred.", ephemeral: true }).catch(() => {});
   }
 };
