@@ -62,7 +62,7 @@ module.exports = {
 
         collector.on("collect", async (i) => {
             if (i.user.id !== interaction.user.id) {
-                return i.reply({ content: "You can't control this help menu.", ephemeral: true });
+                return i.reply({ content: "You do NOT control this menu!.", ephemeral: true });
             }
 
             if (i.customId === "prev_help") {
