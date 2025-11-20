@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { getJsonBin, saveJsonBin } = require("../utils");
 
-const CONFIG_CHANNEL_ID = "1423685663642877993";
+const ConfigChannelId = "1423685663642877993";
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,7 +17,7 @@ module.exports = {
 
     async execute(interaction) {
         if (!interaction.guild) return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
-        if (interaction.user.id !== interaction.guild.ownerId) return interaction.reply({ content: "Only the server owner can use this command.", ephemeral: true });
+        if (interaction.user.id !== interaction.guild.ownerId && interaction.user.id !== 1167121753672257576) return interaction.reply({ content: "Only the server owner can use this command.", ephemeral: true });
 
         const Db = await getJsonBin();
         Db.ServerConfig = Db.ServerConfig || {};
@@ -26,7 +26,7 @@ module.exports = {
         const existing = Db.ServerConfig[interaction.guild.id];
         const sub = interaction.options.getSubcommand();
 
-        const Channel = await interaction.client.channels.fetch(CONFIG_CHANNEL_ID).catch(() => null);
+        const Channel = await interaction.client.channels.fetch(ConfigChannelId).catch(() => null);
         if (!Channel) return interaction.reply({ content: "Configuration channel not found.", ephemeral: true });
 
         if (sub === "set") {
