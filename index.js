@@ -4,6 +4,8 @@ const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
 const { getJsonBin, saveJsonBin } = require("./utils");
 const { getRobloxDescription, leaveGroup } = require("./roblox");
+const { getBlockData } = require("./utils/blocking");
+const { sendBlockedMessage } = require("./utils/blockedMessage");
 
 const ClientBot = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -22,7 +24,6 @@ ClientBot.on("guildCreate", async guild => {
 
     try {
         const owner = await guild.fetchOwner();
-
         if (!owner) return;
 
         const message = "**THANK YOU FOR ADDING RoSystem!**\n\nWe appreciate you adding RoSystem — a group management bot currently in Alpha, meaning we are actively adding new features and always open for feedback.\n\nTo get started, run /config with your group ID to set up the bot.\n\nFor support, join our Support Server:\nhttps://discord.gg/VhBqwBxHSd\n\n**Best Wishes,**\n**Team RoSystem**.";
@@ -32,7 +33,7 @@ ClientBot.on("guildCreate", async guild => {
         console.error("Failed to send message:", err);
     }
 });
-        
+
 ClientBot.on("guildDelete", () => ClientBot.updateActivity());
 
 ClientBot.updateActivity = function () {
@@ -47,6 +48,14 @@ ClientBot.on("interactionCreate", async interaction => {
     Db.ServerConfig = Db.ServerConfig || {};
     Db.PendingApprovals = Db.PendingApprovals || {};
     Db.Verifications = Db.Verifications || {};
+
+    const BlockData = await getBlockData();
+
+    if ((interaction.user && BlockData.BlockedUsers.includes(interaction.user.id)) ||
+        (interaction.guild && BlockData.BlockedServers.includes(interaction.guild.id))) {
+        await sendBlockedMessage(interaction);
+        return;
+    }
 
     if (interaction.isButton()) {
         await handleButton(interaction, ClientBot);
