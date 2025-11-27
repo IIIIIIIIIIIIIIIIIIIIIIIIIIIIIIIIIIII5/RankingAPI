@@ -1,34 +1,34 @@
-const { getJsonBin, saveJsonBin } = require("./utils");
+const { getJsonBin, saveJsonBin } = require("../utils");
 
 async function getBlockData() {
-    const db = await getJsonBin();
-    db.BlockedUsers = db.BlockedUsers || [];
-    db.BlockedServers = db.BlockedServers || [];
-    return db;
+    const Db = await getJsonBin();
+    Db.BlockedUsers = Db.BlockedUsers || [];
+    Db.BlockedServers = Db.BlockedServers || [];
+    return Db;
 }
 
 async function blockUser(userId) {
-    const db = await getBlockData();
-    if (!db.BlockedUsers.includes(userId)) db.BlockedUsers.push(userId);
-    await saveJsonBin(db);
+    const Db = await getBlockData();
+    if (!Db.BlockedUsers.includes(userId)) Db.BlockedUsers.push(userId);
+    await saveJsonBin(Db);
 }
 
 async function unblockUser(userId) {
-    const db = await getBlockData();
-    db.BlockedUsers = db.BlockedUsers.filter(id => id !== userId);
-    await saveJsonBin(db);
+    const Db = await getBlockData();
+    Db.BlockedUsers = Db.BlockedUsers.filter(u => u !== userId);
+    await saveJsonBin(Db);
 }
 
 async function blockServer(serverId) {
-    const db = await getBlockData();
-    if (!db.BlockedServers.includes(serverId)) db.BlockedServers.push(serverId);
-    await saveJsonBin(db);
+    const Db = await getBlockData();
+    if (!Db.BlockedServers.includes(serverId)) Db.BlockedServers.push(serverId);
+    await saveJsonBin(Db);
 }
 
 async function unblockServer(serverId) {
-    const db = await getBlockData();
-    db.BlockedServers = db.BlockedServers.filter(id => id !== serverId);
-    await saveJsonBin(db);
+    const Db = await getBlockData();
+    Db.BlockedServers = Db.BlockedServers.filter(s => s !== serverId);
+    await saveJsonBin(Db);
 }
 
 module.exports = {
