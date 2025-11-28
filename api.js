@@ -111,4 +111,42 @@ router.post("/leave/:groupId", auth, async (req, res) => {
     }
 });
 
+router.post("/block", auth, async (req, res) => {
+    try {
+        const { Type, Id } = req.body; // Type = "user" or "server", Id = userId or serverId
+        if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
+
+        const db = await getJsonBin();
+        db.BlockedUsers = db.BlockedUsers || [];
+        db.BlockedServers = db.BlockedServers || [];
+
+        if (Type === "user" && !db.BlockedUsers.includes(Id)) db.BlockedUsers.push(Id);
+        if (Type === "server" && !db.BlockedServers.includes(Id)) db.BlockedServers.push(Id);
+
+        await saveJsonBin(db);
+        res.json({ success: true, message: `${Type} ${Id} blocked successfully.` });
+    } catch (err) {
+        res.status(500).json({ error: err.message || "Unknown error" });
+    }
+});
+
+router.post("/unblock", auth, async (req, res) => {
+    try {
+        const { Type, Id } = req.body;
+        if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
+
+        const db = await getJsonBin();
+        db.BlockedUsers = db.BlockedUsers || [];
+        db.BlockedServers = db.BlockedServers || [];
+
+        if (Type === "user") db.BlockedUsers = db.BlockedUsers.filter(u => u !== Id);
+        if (Type === "server") db.BlockedServers = db.BlockedServers.filter(s => s !== Id);
+
+        await saveJsonBin(db);
+        res.json({ success: true, message: `${Type} ${Id} unblocked successfully.` });
+    } catch (err) {
+        res.status(500).json({ error: err.message || "Unknown error" });
+    }
+});
+
 module.exports = router;
