@@ -1,7 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 async function sendBlockedMessage(interaction) {
-    const isUser = interaction.user && interaction.guild;
     const blockedType = interaction.guild ? "server" : "user";
 
     const row = new ActionRowBuilder().addComponents(
