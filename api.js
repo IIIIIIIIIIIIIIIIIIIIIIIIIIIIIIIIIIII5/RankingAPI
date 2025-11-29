@@ -113,7 +113,7 @@ router.post("/leave/:groupId", auth, async (req, res) => {
 
 router.post("/block", auth, async (req, res) => {
     try {
-        const { Type, Id } = req.body; // Type = "user" or "server", Id = userId or serverId
+        const { Type, Id } = req.body;
         if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
 
         const db = await getJsonBin();
