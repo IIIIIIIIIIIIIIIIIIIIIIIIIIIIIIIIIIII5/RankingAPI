@@ -1,6 +1,6 @@
 const express = require("express");
 const { setRank, getCurrentRank, fetchRoles, getRobloxUserId, exileUser, leaveGroup } = require("./roblox");
-const { logRankChange, getJsonBin } = require("./utils");
+const { logRankChange, getJsonBin, saveJsonBin } = require("./utils");
 
 const router = express.Router();
 
