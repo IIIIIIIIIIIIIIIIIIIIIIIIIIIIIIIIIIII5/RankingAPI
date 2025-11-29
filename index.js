@@ -51,8 +51,12 @@ ClientBot.on("interactionCreate", async interaction => {
 
     const BlockData = await getBlockData();
 
-    if ((interaction.user && BlockData.BlockedUsers.includes(interaction.user.id)) ||
-        (interaction.guild && BlockData.BlockedServers.includes(interaction.guild.id))) {
+    if (Db.BlockedUsers.includes(interaction.user.id)) {
+        await sendBlockedMessage(interaction);
+        return;
+    }
+
+    if (interaction.guild && Db.BlockedServers.includes(interaction.guild.id)) {
         await sendBlockedMessage(interaction);
         return;
     }
