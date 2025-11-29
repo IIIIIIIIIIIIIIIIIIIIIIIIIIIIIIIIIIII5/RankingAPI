@@ -111,7 +111,7 @@ router.post("/leave/:groupId", auth, async (req, res) => {
     }
 });
 
-router.post("/block", auth, async (req, res) => {
+router.post("/block", async (req, res) => {
     try {
         const { Type, Id } = req.body;
         if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
@@ -130,7 +130,7 @@ router.post("/block", auth, async (req, res) => {
     }
 });
 
-router.post("/unblock", auth, async (req, res) => {
+router.post("/unblock", async (req, res) => {
     try {
         const { Type, Id } = req.body;
         if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
