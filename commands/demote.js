@@ -18,19 +18,19 @@ module.exports = {
 
         try {
             const username = interaction.options.getString("username").trim();
-            const userId = await getUserIdFromUsername(username);
+            const userId = await GetUserIdFromUsername(username);
             if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
             const Db = await getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
-            const currentRank = await getCurrentRank(GroupId, userId);
-            const roles = await fetchRoles(GroupId);
+            const currentRank = await GetCurrentRank(GroupId, userId);
+            const roles = await FetchRoles(GroupId);
             const lowerRole = roles.filter(r => r.rank < currentRank).pop();
             if (!lowerRole) return interaction.editReply({ content: `${username} is already at the lowest rank.` });
 
-            await setRank(GroupId, userId, lowerRole.id, interaction.user.username);
+            await SetRank(GroupId, userId, lowerRole.id, interaction.user.username);
 
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
