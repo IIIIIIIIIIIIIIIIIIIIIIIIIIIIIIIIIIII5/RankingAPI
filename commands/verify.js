@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-const { GetRobloxUserId, GetRobloxDescription } = require("../roblox");
+const { GetRobloxUserId } = require("../roblox");
 const { getJsonBin, saveJsonBin } = require("../utils");
 const crypto = require("crypto");
 
@@ -10,7 +10,7 @@ module.exports = {
         .addStringOption(opt => opt.setName("username").setDescription("Your Roblox username").setRequired(true)),
     async execute(interaction, verifications) {
         const username = interaction.options.getString("username");
-        const userId = await getRobloxUserId(username);
+        const userId = await GetRobloxUserId(username);
         const code = "VERIFY-" + crypto.randomBytes(3).toString("hex").toUpperCase();
 
         verifications[interaction.user.id] = { RobloxUserId: userId, Code: code };
