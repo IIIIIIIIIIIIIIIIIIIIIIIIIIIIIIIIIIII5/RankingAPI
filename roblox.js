@@ -67,6 +67,42 @@ async function FetchRoles(groupId) {
     return res.data.roles.sort((a, b) => a.rank - b.rank);
 }
 
+async function GetGroupMembers(groupId) {
+    const members = [];
+    let cursor = null;
+
+    do {
+        const url = cursor
+            ? `https://groups.roblox.com/v1/groups/${groupId}/users?cursor=${cursor}&limit=100`
+            : `https://groups.roblox.com/v1/groups/${groupId}/users?limit=100`;
+
+        const res = await SafeRequest(() =>
+            Retry(() =>
+                axios.get(url, {
+                    headers: { Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}` },
+                    timeout: 30000
+                })
+            )
+        );
+
+        if (!res.data.data) break;
+
+        for (const m of res.data.data) {
+            members.push({
+                userId: m.user.id,
+                username: m.user.username,
+                rankId: m.role.id,
+                rankName: m.role.name,
+                rankNumber: m.role.rank
+            });
+        }
+
+        cursor = res.data.nextPageCursor || null;
+    } while (cursor);
+
+    return members;
+}
+
 async function GetCurrentRank(groupId, userId) {
     const res = await SafeRequest(() =>
         Retry(() =>
@@ -297,5 +333,6 @@ module.exports = {
     GetUserIdFromUsername,
     ExileUser,
     SetGroupShout,
-    LeaveGroup
+    LeaveGroup,
+    GetGroupMembers
 };
