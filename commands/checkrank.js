@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { fetchRoles } = require("../roblox");
+const { FetchRoles } = require("../roblox");
 const { getJsonBin } = require("../utils");
 const { checkCommandRole } = require("../roleCheck");
 
@@ -21,7 +21,7 @@ module.exports = {
         if (!groupId) return interaction.editReply("Group ID not set. Run `/config` first.");
 
         try {
-            const liveRoles = await fetchRoles(groupId);
+            const liveRoles = await FetchRoles(groupId);
             const liveRoleNames = liveRoles.map(r => r.name);
 
             const cachedRoles = Db.ServerConfig[guildId]?.LastFetchedRanks || [];
