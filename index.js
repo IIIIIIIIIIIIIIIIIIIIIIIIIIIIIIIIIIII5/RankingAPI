@@ -142,39 +142,6 @@ ClientBot.on("interactionCreate", async interaction => {
     }
 });
 
-ClientBot.on("messageCreate", async message => {
-    if (!message.guild) return;
-    if (!message.content.startsWith("!")) return;
-
-    const args = message.content.slice(1).trim().split(/ +/g);
-    const cmd = args.shift()?.toLowerCase();
-
-    if (cmd === "whitelist") {
-        const Db = await getJsonBin();
-        Db.WhitelistServers = Db.WhitelistServers || {};
-
-        if (message.author.id !== message.guild.ownerId) {
-            return message.reply("Only the server owner can use this.");
-        }
-
-        const sub = args[0]?.toLowerCase();
-
-        if (sub === "add") {
-            Db.WhitelistServers[message.guild.id] = true;
-            await saveJsonBin(Db);
-            return message.reply("This server is now whitelisted from monthly limits.");
-        }
-
-        if (sub === "remove") {
-            delete Db.WhitelistServers[message.guild.id];
-            await saveJsonBin(Db);
-            return message.reply("Whitelist removed. Limits restored.");
-        }
-
-        return message.reply("Usage: !whitelist add/remove");
-    }
-});
-
 const app = express();
 app.use(bodyParser.json());
 app.use("/api", apiRoutes);
