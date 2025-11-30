@@ -12,6 +12,7 @@ const ClientBot = new Client({
 });
 
 require("./commands")(ClientBot);
+require("./RankLockEnforcer");
 
 ClientBot.once("ready", () => {
     console.log("Bot is ready!");
