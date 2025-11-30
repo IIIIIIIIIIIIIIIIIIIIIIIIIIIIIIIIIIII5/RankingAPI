@@ -33,7 +33,7 @@ module.exports = {
         if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
         await interaction.deferReply();
         const username = interaction.options.getString("username").trim();
-        const userId = await getUserIdFromUsername(username);
+        const userId = await GetUserIdFromUsername(username);
         if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
         const Db = await getJsonBin();
         const guildId = interaction.guild.id;
