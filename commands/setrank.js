@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { fetchRoles, setRank, getUserIdFromUsername } = require("../roblox");
+const { FetchRoles, SetRank, GetUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
@@ -21,14 +21,14 @@ module.exports = {
             const username = interaction.options.getString("username").trim();
             const rankName = interaction.options.getString("rankname").trim();
 
-            const userId = await getUserIdFromUsername(username);
+            const userId = await GetUserIdFromUsername(username);
             if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
             const Db = await getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
-            const roles = await fetchRoles(GroupId);
+            const roles = await FetchRoles(GroupId);
 
             const targetRole = roles.find(r => r.name.trim().toLowerCase() === rankName.toLowerCase());
             if (!targetRole) {
@@ -37,11 +37,11 @@ module.exports = {
                 });
             }
 
-            const botRank = await fetchRoles(GroupId);
+            const botRank = await FetchRoles(GroupId);
             const botRole = botRank.find(r => r.id === targetRole.id);
             if (!botRole) return interaction.editReply({ content: `Cannot assign this rank. Bot may lack permission.` });
 
-            await setRank(GroupId, userId, targetRole.id, interaction.user.username);
+            await SetRank(GroupId, userId, targetRole.id, interaction.user.username);
 
             Db.ServerConfig[interaction.guild.id].LastFetched = roles.map(r => r.name);
             await saveJsonBin(Db);
