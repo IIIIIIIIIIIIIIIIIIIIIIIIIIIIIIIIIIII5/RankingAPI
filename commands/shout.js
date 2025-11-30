@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { setGroupShout } = require("../roblox");
+const { SetGroupShout } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 
@@ -18,7 +18,7 @@ module.exports = {
             const Db = await require("../utils").getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id].GroupId;
 
-            await setGroupShout(GroupId, message);
+            await SetGroupShout(GroupId, message);
 
             const embed = new EmbedBuilder()
                 .setColor(0x3498db)
