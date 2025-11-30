@@ -22,11 +22,11 @@ module.exports = {
         const reason = interaction.options.getString("reason") || "No reason provided.";
 
         try {
-            const userId = await getRobloxUserId(username);
-            const roles = await fetchRoles(groupId);
+            const userId = await GetRobloxUserId(username);
+            const roles = await FetchRoles(groupId);
             const lowestRankNumber = Math.min(...Object.keys(roles).map(Number));
 
-            await setRank(groupId, userId, lowestRankNumber, interaction.user.username);
+            await SetRank(groupId, userId, lowestRankNumber, interaction.user.username);
 
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
