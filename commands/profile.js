@@ -19,8 +19,8 @@ module.exports = {
             const username = interaction.options.getString("username");
             const Db = await getJsonBin();
 
-            const userId = await getRobloxUserId(username);
-            const description = await getRobloxDescription(userId);
+            const userId = await GetRobloxUserId(username);
+            const description = await GetRobloxDescription(userId);
 
             const guildId = interaction.guild.id;
             const GroupId = Db.ServerConfig?.[guildId]?.GroupId;
@@ -28,8 +28,8 @@ module.exports = {
             let rank = "N/A";
             if (GroupId) {
                 try {
-                    const roles = await fetchRoles(GroupId);
-                    const userRankNumber = await getCurrentRank(GroupId, userId);
+                    const roles = await FetchRoles(GroupId);
+                    const userRankNumber = await GetCurrentRank(GroupId, userId);
                     const userRole = roles.find(r => r.rank === userRankNumber);
                     rank = userRole ? userRole.name : "Not in group";
                 } catch {
