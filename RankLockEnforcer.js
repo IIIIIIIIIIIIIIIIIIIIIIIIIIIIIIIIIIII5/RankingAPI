@@ -4,7 +4,7 @@ const { getJsonBin, saveJsonBin } = require("./utils");
 const CheckInterval = 60 * 1000;
 
 async function EnforceRankLocks() {
-    const Db = await GetJsonBin();
+    const Db = await getJsonBin();
 
     for (const GuildId in Db.ServerConfig) {
         const GroupId = Db.ServerConfig[GuildId]?.GroupId;
