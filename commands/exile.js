@@ -18,13 +18,13 @@ module.exports = {
         try {
             const username = interaction.options.getString("username");
             const reason = interaction.options.getString("reason") || "No reason provided.";
-            const userId = await getUserIdFromUsername(username);
+            const userId = await GetUserIdFromUsername(username);
 
             const Db = await getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
             if (!GroupId) return interaction.reply({ content: "Group ID not set. Run /config first.", ephemeral: true });
 
-            await exileUser(GroupId, userId);
+            await ExileUser(GroupId, userId);
 
             const embed = new EmbedBuilder()
                 .setColor(0xe74c3c)
