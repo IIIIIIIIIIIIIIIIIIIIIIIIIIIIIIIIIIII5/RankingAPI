@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { getCurrentRank, fetchRoles, setRank, getUserIdFromUsername } = require("../roblox");
+const { GetCurrentRank, FetchRoles, SetRank, GetUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin } = require("../utils");
@@ -18,19 +18,19 @@ module.exports = {
 
         try {
             const username = interaction.options.getString("username").trim();
-            const userId = await getUserIdFromUsername(username);
+            const userId = await GetUserIdFromUsername(username);
             if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
             const Db = await getJsonBin();
             const GroupId = Db.ServerConfig[interaction.guild.id]?.GroupId;
             if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
-            const currentRank = await getCurrentRank(GroupId, userId);
-            const roles = await fetchRoles(GroupId);
+            const currentRank = await GetCurrentRank(GroupId, userId);
+            const roles = await FetchRoles(GroupId);
             const nextRole = roles.find(r => r.rank > currentRank);
             if (!nextRole) return interaction.editReply({ content: `${username} is already at the highest rank.` });
 
-            await setRank(GroupId, userId, nextRole.id, interaction.user.username);
+            await SetRank(GroupId, userId, nextRole.id, interaction.user.username);
 
             const embed = new EmbedBuilder()
                 .setColor(0x2ecc71)
