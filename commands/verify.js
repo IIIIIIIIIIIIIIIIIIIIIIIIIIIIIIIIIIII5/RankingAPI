@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-const { getRobloxUserId, getRobloxDescription } = require("../roblox");
+const { GetRobloxUserId, GetRobloxDescription } = require("../roblox");
 const { getJsonBin, saveJsonBin } = require("../utils");
 const crypto = require("crypto");
 
