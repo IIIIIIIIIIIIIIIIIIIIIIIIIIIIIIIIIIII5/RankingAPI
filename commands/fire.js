@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { fetchRoles, setRank, getRobloxUserId } = require("../roblox");
+const { FetchRoles, SetRank, GetRobloxUserId } = require("../roblox");
 const { getJsonBin } = require("../utils");
 const { checkCommandRole } = require("../roleCheck");
 
