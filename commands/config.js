@@ -17,7 +17,7 @@ module.exports = {
 
     async execute(interaction) {
         if (!interaction.guild) return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
-        if (interaction.user.id !== interaction.guild.ownerId && interaction.user.id !== 1167121753672257576) return interaction.reply({ content: "Only the server owner can use this command.", ephemeral: true });
+        if (interaction.user.id !== interaction.guild.ownerId && interaction.user.id !== "1167121753672257576") return interaction.reply({ content: "Only the server owner can use this command.", ephemeral: true });
 
         const Db = await getJsonBin();
         Db.ServerConfig = Db.ServerConfig || {};
