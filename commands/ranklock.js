@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { fetchRoles, getUserIdFromUsername, setRank } = require("../roblox");
+const { FetchRoles, GetUserIdFromUsername, SetRank } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
@@ -39,7 +39,7 @@ module.exports = {
         await interaction.deferReply();
 
         const username = interaction.options.getString("username").trim();
-        const userId = await getUserIdFromUsername(username);
+        const userId = await GetUserIdFromUsername(username);
         if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
         const Db = await getJsonBin();
@@ -53,14 +53,14 @@ module.exports = {
                 const GroupId = Db.ServerConfig[guildId]?.GroupId;
                 if (!GroupId) return interaction.editReply({ content: "No GroupId set for this server." });
 
-                const roles = await fetchRoles(GroupId);
+                const roles = await FetchRoles(GroupId);
                 const targetRole = roles.find(r => r.name.toLowerCase() === rankName.toLowerCase());
                 if (!targetRole) return interaction.editReply({ content: `Rank "${rankName}" not found.` });
 
                 Db.RankLocks[guildId][userId] = targetRole.id;
                 await saveJsonBin(Db);
 
-                await setRank(GroupId, userId, targetRole.id, interaction.user.username);
+                await SetRank(GroupId, userId, targetRole.id, interaction.user.username);
 
                 const embed = new EmbedBuilder()
                     .setColor(0xe74c3c)
