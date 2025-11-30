@@ -1,5 +1,5 @@
 const { fetchRoles, GetGroupMembers, SetRank } = require("./roblox");
-const { GetJsonBin, SaveJsonBin } = require("./utils");
+const { getJsonBin, saveJsonBin } = require("./utils");
 
 const CheckInterval = 60 * 1000;
 
