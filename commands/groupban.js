@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { GetUserIdFromUsername } = require("../roblox");
+const { GetUserIdFromUsername, ExileUser } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
@@ -31,12 +31,21 @@ module.exports = {
         const sub = interaction.options.getSubcommand();
         const allowed = await checkCommandRole(interaction, "groupban");
         if (!allowed) return interaction.reply({ content: "You don't have permission.", flags: 64 });
+
         await interaction.deferReply();
-        const username = interaction.options.getString("username").trim();
-        const userId = await GetUserIdFromUsername(username);
-        if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
-        const Db = await getJsonBin();
+
         const guildId = interaction.guild.id;
+        const username = interaction.options.getString("username").trim();
+        const userId = await GetUserIdFromUsername(username).catch(() => null);
+        if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
+
+        const Db = await getJsonBin();
+
+        if (!Db.GroupId || !Db.GroupId[guildId])
+            return interaction.editReply({ content: "This server does not have a group ID set." });
+
+        const groupId = Db.GroupId[guildId];
+
         if (!Db.GroupBans) Db.GroupBans = {};
         if (!Db.GroupBans[guildId]) Db.GroupBans[guildId] = [];
 
@@ -44,8 +53,12 @@ module.exports = {
             if (sub === "ban") {
                 if (Db.GroupBans[guildId].includes(userId))
                     return interaction.editReply({ content: `${username} is already group-banned.` });
+
                 Db.GroupBans[guildId].push(userId);
                 await saveJsonBin(Db);
+
+                await ExileUser(groupId, userId).catch(() => {});
+
                 const embed = new EmbedBuilder()
                     .setColor(0xe74c3c)
                     .setTitle("User Group-Banned")
@@ -55,6 +68,7 @@ module.exports = {
                         { name: "Issued By", value: interaction.user.tag, inline: true },
                         { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                     );
+
                 await interaction.editReply({ embeds: [embed] });
                 return logAction(interaction, embed);
             }
@@ -62,8 +76,10 @@ module.exports = {
             if (sub === "unban") {
                 if (!Db.GroupBans[guildId].includes(userId))
                     return interaction.editReply({ content: `${username} is not group-banned.` });
+
                 Db.GroupBans[guildId] = Db.GroupBans[guildId].filter(id => id !== userId);
                 await saveJsonBin(Db);
+
                 const embed = new EmbedBuilder()
                     .setColor(0x2ecc71)
                     .setTitle("User Group-Unbanned")
@@ -73,6 +89,7 @@ module.exports = {
                         { name: "Issued By", value: interaction.user.tag, inline: true },
                         { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                     );
+
                 await interaction.editReply({ embeds: [embed] });
                 return logAction(interaction, embed);
             }
@@ -82,6 +99,7 @@ module.exports = {
                 .setColor(0xe74c3c)
                 .setTitle("Failed")
                 .setDescription(err?.response?.data?.errors?.[0]?.message || err.message || "Unknown error");
+
             await interaction.editReply({ embeds: [embed] });
             return logAction(interaction, embed);
         }
