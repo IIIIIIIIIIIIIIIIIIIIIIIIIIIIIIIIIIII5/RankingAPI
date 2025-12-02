@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { GetUserIdFromUsername, ExileUser } = require("../roblox");
+const { GetUserIdFromUsername } = require("../roblox");
 const { checkCommandRole } = require("../roleCheck");
 const { logAction } = require("../logging");
 const { getJsonBin, saveJsonBin } = require("../utils");
@@ -34,30 +34,30 @@ module.exports = {
 
         await interaction.deferReply();
 
-        const guildId = interaction.guild.id;
         const username = interaction.options.getString("username").trim();
-        const userId = await GetUserIdFromUsername(username).catch(() => null);
+        const userId = await GetUserIdFromUsername(username);
         if (!userId) return interaction.editReply({ content: `User "${username}" not found.` });
 
         const Db = await getJsonBin();
+        const guildId = interaction.guild.id;
 
-        if (!Db.GroupId || !Db.GroupId[guildId])
-            return interaction.editReply({ content: "This server does not have a group ID set." });
-
-        const groupId = Db.GroupId[guildId];
-
+        if (!Db.ServerConfig) Db.ServerConfig = {};
         if (!Db.GroupBans) Db.GroupBans = {};
-        if (!Db.GroupBans[guildId]) Db.GroupBans[guildId] = [];
+        if (!Db.GroupBans[guildId]) Db.GroupBans[guildId] = {};
+
+        const serverId = guildId;
+        const groupId = Db.ServerConfig[serverId]?.GroupId;
+        if (!groupId) return interaction.editReply({ content: "No GroupId configured for this server." });
+
+        if (!Db.GroupBans[guildId][groupId]) Db.GroupBans[guildId][groupId] = [];
 
         try {
             if (sub === "ban") {
-                if (Db.GroupBans[guildId].includes(userId))
+                if (Db.GroupBans[guildId][groupId].includes(userId))
                     return interaction.editReply({ content: `${username} is already group-banned.` });
 
-                Db.GroupBans[guildId].push(userId);
+                Db.GroupBans[guildId][groupId].push(userId);
                 await saveJsonBin(Db);
-
-                await ExileUser(groupId, userId).catch(() => {});
 
                 const embed = new EmbedBuilder()
                     .setColor(0xe74c3c)
@@ -65,6 +65,7 @@ module.exports = {
                     .addFields(
                         { name: "User", value: username, inline: true },
                         { name: "UserId", value: `${userId}`, inline: true },
+                        { name: "GroupId", value: `${groupId}`, inline: true },
                         { name: "Issued By", value: interaction.user.tag, inline: true },
                         { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                     );
@@ -74,10 +75,10 @@ module.exports = {
             }
 
             if (sub === "unban") {
-                if (!Db.GroupBans[guildId].includes(userId))
+                if (!Db.GroupBans[guildId][groupId].includes(userId))
                     return interaction.editReply({ content: `${username} is not group-banned.` });
 
-                Db.GroupBans[guildId] = Db.GroupBans[guildId].filter(id => id !== userId);
+                Db.GroupBans[guildId][groupId] = Db.GroupBans[guildId][groupId].filter(id => id !== userId);
                 await saveJsonBin(Db);
 
                 const embed = new EmbedBuilder()
@@ -86,6 +87,7 @@ module.exports = {
                     .addFields(
                         { name: "User", value: username, inline: true },
                         { name: "UserId", value: `${userId}`, inline: true },
+                        { name: "GroupId", value: `${groupId}`, inline: true },
                         { name: "Issued By", value: interaction.user.tag, inline: true },
                         { name: "Date", value: new Date().toISOString().split("T")[0], inline: true }
                     );
@@ -99,7 +101,6 @@ module.exports = {
                 .setColor(0xe74c3c)
                 .setTitle("Failed")
                 .setDescription(err?.response?.data?.errors?.[0]?.message || err.message || "Unknown error");
-
             await interaction.editReply({ embeds: [embed] });
             return logAction(interaction, embed);
         }
