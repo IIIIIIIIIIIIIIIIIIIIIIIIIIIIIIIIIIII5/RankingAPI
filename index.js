@@ -115,9 +115,7 @@ ClientBot.on("interactionCreate", async interaction => {
                 fire: selectedRoleId,
                 exile: selectedRoleId,
                 apikey: selectedRoleId,
-                shout: selectedRoleId,
-                groupban: selectedRoleId,
-                ranklock: selectedRoleId
+                shout: selectedRoleId
             };
             await saveJsonBin(Db);
             return interaction.update({ content: `All Roblox commands are now restricted to <@&${selectedRoleId}>.`, components: [] });
