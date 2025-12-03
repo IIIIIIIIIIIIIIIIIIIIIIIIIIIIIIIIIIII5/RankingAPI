@@ -69,7 +69,11 @@ module.exports = {
 
                 await saveJsonBin(Db);
 
-                try { await ExileUser(groupId, userId); } catch (e) { }
+                try {
+                    await ExileUser(groupId, userId);
+                } catch (err) {
+                    console.log("Error:", err.response?.status, err.response?.data);
+                }
 
                 const embed = new EmbedBuilder()
                     .setColor(0xe74c3c)
