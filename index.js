@@ -3,7 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const apiRoutes = require("./api");
 const { getJsonBin, saveJsonBin } = require("./utils");
-const { getRobloxDescription, leaveGroup } = require("./roblox");
+const { getRobloxDescription, leaveGroup, GetCurrentCookie, RotateCookie } = require("./roblox");
 const { getBlockData } = require("./utils/blocking");
 const { sendBlockedMessage } = require("./utils/blockedMessage");
 
