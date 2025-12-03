@@ -66,7 +66,8 @@ ClientBot.on("messageCreate", async (message) => {
         
         Db.RotatingCookie = NewCookie;
         await SaveJsonBin(Db);
-        
+
+        RotateCookie();
         message.channel.send(`Cookies rotated! New current cookie is now assigned for new users.`);
     }
 });
