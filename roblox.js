@@ -192,7 +192,8 @@ async function ExileUser(groupId, userId) {
                 axios.delete(url, {
                     headers: {
                         Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                        "X-CSRF-TOKEN": xsrfToken
+                        "X-CSRF-TOKEN": xsrfToken,
+                        "Content-Type": "application/json"
                     },
                     timeout: 30000
                 })
@@ -206,7 +207,8 @@ async function ExileUser(groupId, userId) {
                     axios.delete(url, {
                         headers: {
                             Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                            "X-CSRF-TOKEN": xsrfToken
+                            "X-CSRF-TOKEN": xsrfToken,
+                            "Content-Type": "application/json"
                         },
                         timeout: 30000
                     })
