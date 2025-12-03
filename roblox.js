@@ -18,7 +18,6 @@ async function SafeRequest(fn, retries = RobloxCookies.length) {
         } catch (err) {
             const status = err.response?.status;
             if (status === 403 || status === 400 || status === 429) {
-                RotateCookie();
                 continue;
             }
             throw err;
@@ -65,42 +64,6 @@ async function FetchRoles(groupId) {
         )
     );
     return res.data.roles.sort((a, b) => a.rank - b.rank);
-}
-
-async function GetGroupMembers(groupId) {
-    const members = [];
-    let cursor = null;
-
-    do {
-        const url = cursor
-            ? `https://groups.roblox.com/v1/groups/${groupId}/users?cursor=${cursor}&limit=100`
-            : `https://groups.roblox.com/v1/groups/${groupId}/users?limit=100`;
-
-        const res = await SafeRequest(() =>
-            Retry(() =>
-                axios.get(url, {
-                    headers: { Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}` },
-                    timeout: 30000
-                })
-            )
-        );
-
-        if (!res.data.data) break;
-
-        for (const m of res.data.data) {
-            members.push({
-                userId: m.user.id,
-                username: m.user.username,
-                rankId: m.role.id,
-                rankName: m.role.name,
-                rankNumber: m.role.rank
-            });
-        }
-
-        cursor = res.data.nextPageCursor || null;
-    } while (cursor);
-
-    return members;
 }
 
 async function GetCurrentRank(groupId, userId) {
@@ -192,8 +155,7 @@ async function ExileUser(groupId, userId) {
                 axios.delete(url, {
                     headers: {
                         Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                        "X-CSRF-TOKEN": xsrfToken,
-                        "Content-Type": "application/json"
+                        "X-CSRF-TOKEN": xsrfToken
                     },
                     timeout: 30000
                 })
@@ -207,8 +169,7 @@ async function ExileUser(groupId, userId) {
                     axios.delete(url, {
                         headers: {
                             Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                            "X-CSRF-TOKEN": xsrfToken,
-                            "Content-Type": "application/json"
+                            "X-CSRF-TOKEN": xsrfToken
                         },
                         timeout: 30000
                     })
@@ -335,6 +296,5 @@ module.exports = {
     GetUserIdFromUsername,
     ExileUser,
     SetGroupShout,
-    LeaveGroup,
-    GetGroupMembers
+    LeaveGroup
 };
