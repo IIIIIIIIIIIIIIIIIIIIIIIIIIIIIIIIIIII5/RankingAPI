@@ -11,21 +11,6 @@ function RotateCookie() {
     CurrentCookieIndex = (CurrentCookieIndex + 1) % RobloxCookies.length;
 }
 
-async function SafeRequest(fn, retries = RobloxCookies.length) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            return await fn();
-        } catch (err) {
-            const status = err.response?.status;
-            if (status === 403 || status === 400 || status === 429) {
-                continue;
-            }
-            throw err;
-        }
-    }
-    throw new Error("All Roblox accounts failed.");
-}
-
 async function Retry(fn, retries = 3, delay = 2000) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -43,13 +28,11 @@ async function Retry(fn, retries = 3, delay = 2000) {
 
 async function GetXsrfToken() {
     try {
-        const res = await SafeRequest(() =>
-            Retry(() =>
-                axios.post("https://auth.roblox.com/v2/logout", {}, {
-                    headers: { Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}` },
-                    timeout: 30000
-                })
-            )
+        const res = await Retry(() =>
+            axios.post("https://auth.roblox.com/v2/logout", {}, {
+                headers: { Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}` },
+                timeout: 30000
+            })
         );
         return res.headers["x-csrf-token"];
     } catch (err) {
@@ -58,19 +41,15 @@ async function GetXsrfToken() {
 }
 
 async function FetchRoles(groupId) {
-    const res = await SafeRequest(() =>
-        Retry(() =>
-            axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`, { timeout: 30000 })
-        )
+    const res = await Retry(() =>
+        axios.get(`https://groups.roblox.com/v1/groups/${groupId}/roles`, { timeout: 30000 })
     );
     return res.data.roles.sort((a, b) => a.rank - b.rank);
 }
 
 async function GetCurrentRank(groupId, userId) {
-    const res = await SafeRequest(() =>
-        Retry(() =>
-            axios.get(`https://groups.roblox.com/v2/users/${userId}/groups/roles`, { timeout: 30000 })
-        )
+    const res = await Retry(() =>
+        axios.get(`https://groups.roblox.com/v2/users/${userId}/groups/roles`, { timeout: 30000 })
     );
     const groupData = res.data.data.find(g => g.group.id === groupId);
     if (!groupData) throw new Error("User not in group");
@@ -94,8 +73,20 @@ async function SetRank(groupId, userId, roleId, issuer, logFunction) {
     const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`;
 
     try {
-        await SafeRequest(() =>
-            Retry(() =>
+        await Retry(() =>
+            axios.patch(url, { roleId }, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": xsrfToken
+                },
+                timeout: 30000
+            })
+        );
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await Retry(() =>
                 axios.patch(url, { roleId }, {
                     headers: {
                         Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
@@ -104,22 +95,6 @@ async function SetRank(groupId, userId, roleId, issuer, logFunction) {
                     },
                     timeout: 30000
                 })
-            )
-        );
-    } catch (err) {
-        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
-            xsrfToken = err.response.headers["x-csrf-token"];
-            await SafeRequest(() =>
-                Retry(() =>
-                    axios.patch(url, { roleId }, {
-                        headers: {
-                            Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": xsrfToken
-                        },
-                        timeout: 30000
-                    })
-                )
             );
         } else throw err;
     }
@@ -128,20 +103,16 @@ async function SetRank(groupId, userId, roleId, issuer, logFunction) {
 }
 
 async function GetRobloxUserId(username) {
-    const res = await SafeRequest(() =>
-        Retry(() =>
-            axios.get(`https://users.roblox.com/v1/users/search?keyword=${username}`, { timeout: 30000 })
-        )
+    const res = await Retry(() =>
+        axios.get(`https://users.roblox.com/v1/users/search?keyword=${username}`, { timeout: 30000 })
     );
     if (!res.data.data || !res.data.data[0]) throw new Error("Invalid username");
     return res.data.data[0].id;
 }
 
 async function GetRobloxDescription(userId) {
-    const res = await SafeRequest(() =>
-        Retry(() =>
-            axios.get(`https://users.roblox.com/v1/users/${userId}`, { timeout: 30000 })
-        )
+    const res = await Retry(() =>
+        axios.get(`https://users.roblox.com/v1/users/${userId}`, { timeout: 30000 })
     );
     return res.data.description || "";
 }
@@ -150,8 +121,19 @@ async function ExileUser(groupId, userId) {
     let xsrfToken = await GetXsrfToken();
     const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}`;
     try {
-        await SafeRequest(() =>
-            Retry(() =>
+        await Retry(() =>
+            axios.delete(url, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
+                    "X-CSRF-TOKEN": xsrfToken
+                },
+                timeout: 30000
+            })
+        );
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await Retry(() =>
                 axios.delete(url, {
                     headers: {
                         Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
@@ -159,21 +141,6 @@ async function ExileUser(groupId, userId) {
                     },
                     timeout: 30000
                 })
-            )
-        );
-    } catch (err) {
-        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
-            xsrfToken = err.response.headers["x-csrf-token"];
-            await SafeRequest(() =>
-                Retry(() =>
-                    axios.delete(url, {
-                        headers: {
-                            Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                            "X-CSRF-TOKEN": xsrfToken
-                        },
-                        timeout: 30000
-                    })
-                )
             );
         } else throw new Error(`Failed to exile user: ${err.response?.statusText || err.message}`);
     }
@@ -191,8 +158,20 @@ async function SetGroupShout(groupId, message) {
     const url = `https://groups.roblox.com/v1/groups/${groupId}/status`;
 
     try {
-        await SafeRequest(() =>
-            Retry(() =>
+        await Retry(() =>
+            axios.patch(url, { message }, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": xsrfToken
+                },
+                timeout: 30000
+            })
+        );
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await Retry(() =>
                 axios.patch(url, { message }, {
                     headers: {
                         Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
@@ -201,37 +180,19 @@ async function SetGroupShout(groupId, message) {
                     },
                     timeout: 30000
                 })
-            )
-        );
-    } catch (err) {
-        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
-            xsrfToken = err.response.headers["x-csrf-token"];
-            await SafeRequest(() =>
-                Retry(() =>
-                    axios.patch(url, { message }, {
-                        headers: {
-                            Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": xsrfToken
-                        },
-                        timeout: 30000
-                    })
-                )
             );
         } else throw new Error(`Failed to set shout: ${err.response?.statusText || err.message}`);
     }
 }
 
 async function GetUserIdFromUsername(username) {
-    const res = await SafeRequest(() =>
-        Retry(() =>
-            axios.post("https://users.roblox.com/v1/usernames/users", {
-                usernames: [username]
-            }, {
-                headers: { "Content-Type": "application/json" },
-                timeout: 30000
-            })
-        )
+    const res = await Retry(() =>
+        axios.post("https://users.roblox.com/v1/usernames/users", {
+            usernames: [username]
+        }, {
+            headers: { "Content-Type": "application/json" },
+            timeout: 30000
+        })
     );
     if (res.data.data && res.data.data.length > 0) return res.data.data[0].id;
     throw new Error("User not found");
@@ -243,8 +204,19 @@ async function LeaveGroup(groupId) {
     const url = `https://groups.roblox.com/v1/groups/${groupId}/users/${selfId}`;
 
     try {
-        await SafeRequest(() =>
-            Retry(() =>
+        await Retry(() =>
+            axios.delete(url, {
+                headers: {
+                    Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
+                    "X-CSRF-TOKEN": xsrfToken
+                },
+                timeout: 30000
+            })
+        );
+    } catch (err) {
+        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
+            xsrfToken = err.response.headers["x-csrf-token"];
+            await Retry(() =>
                 axios.delete(url, {
                     headers: {
                         Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
@@ -252,34 +224,17 @@ async function LeaveGroup(groupId) {
                     },
                     timeout: 30000
                 })
-            )
-        );
-    } catch (err) {
-        if (err.response?.status === 403 && err.response?.headers["x-csrf-token"]) {
-            xsrfToken = err.response.headers["x-csrf-token"];
-            await SafeRequest(() =>
-                Retry(() =>
-                    axios.delete(url, {
-                        headers: {
-                            Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}`,
-                            "X-CSRF-TOKEN": xsrfToken
-                        },
-                        timeout: 30000
-                    })
-                )
             );
         } else throw new Error(`Failed to leave group: ${err.response?.statusText || err.message}`);
     }
 }
 
 async function GetSelfUserId() {
-    const res = await SafeRequest(() =>
-        Retry(() =>
-            axios.get("https://users.roblox.com/v1/users/authenticated", {
-                headers: { Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}` },
-                timeout: 30000
-            })
-        )
+    const res = await Retry(() =>
+        axios.get("https://users.roblox.com/v1/users/authenticated", {
+            headers: { Cookie: `.ROBLOSECURITY=${GetCurrentCookie()}` },
+            timeout: 30000
+        })
     );
     return res.data.id;
 }
