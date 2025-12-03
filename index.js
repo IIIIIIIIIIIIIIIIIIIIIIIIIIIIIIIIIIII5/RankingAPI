@@ -43,6 +43,34 @@ ClientBot.updateActivity = function () {
 
 const handleButton = require("./events/buttons");
 
+ClientBot.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+
+    if (message.content === "!RotateCookies") {
+        if (message.author.id !== WhitelistUser) {
+            return message.reply("You are not authorized to use this command.");
+        }
+        
+        const Db = await GetJsonBin();
+        Db.UserCookies = Db.UserCookies || {};
+        
+        if (!Db.CurrentCookieIndex) Db.CurrentCookieIndex = 0;
+        Db.CurrentCookieIndex = (Db.CurrentCookieIndex + 1) % RobloxCookies.length;
+        const NewCookie = RobloxCookies[Db.CurrentCookieIndex];
+        
+        for (const UserId in Db.UserCookies) {
+            if (!Db.UserCookies[UserId].PreviousCookie) {
+                Db.UserCookies[UserId].PreviousCookie = Db.UserCookies[UserId].Cookie;
+            }
+        }
+        
+        Db.RotatingCookie = NewCookie;
+        await SaveJsonBin(Db);
+        
+        message.channel.send(`Cookies rotated! New current cookie is now assigned for new users.`);
+    }
+});
+
 ClientBot.on("interactionCreate", async interaction => {
     const Db = await getJsonBin();
     Db.ServerConfig = Db.ServerConfig || {};
