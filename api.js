@@ -10,8 +10,12 @@ async function Auth(req, res, next) {
 
     try {
         const Db = await GetJsonBin();
+        console.log("Db from GetJsonBin():", Db);
+
         Db.ApiKeys = Db.ApiKeys || {};
         const AllKeys = Object.values(Db.ApiKeys).flat();
+
+        console.log("All API Keys:", AllKeys);
 
         if (!AllKeys.includes(Auth)) {
             return res.status(403).json({ error: "Invalid API Key" });
@@ -19,6 +23,7 @@ async function Auth(req, res, next) {
 
         next();
     } catch (Err) {
+        console.error("Auth middleware error:", Err);
         return res.status(500).json({ error: "Internal authentication error" });
     }
 }
