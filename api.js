@@ -41,7 +41,7 @@ Router.post("/promote/:groupId", Auth, async (req, res) => {
         if (CurrentIndex === SortedRanks.length - 1) return res.status(400).json({ error: "Already at highest rank" });
 
         const NewRank = SortedRanks[CurrentIndex + 1];
-        await SetRank(GroupId, UserId, NewRank, "API", LogRankChange);
+        await SetRank(GroupId, UserId, NewRank, "API", logRankChange);
 
         res.json({
             success: true,
@@ -67,7 +67,7 @@ Router.post("/demote/:groupId", Auth, async (req, res) => {
         if (CurrentIndex === 0) return res.status(400).json({ error: "Already at lowest rank" });
 
         const NewRank = SortedRanks[CurrentIndex - 1];
-        await SetRank(GroupId, UserId, NewRank, "API", LogRankChange);
+        await SetRank(GroupId, UserId, NewRank, "API", logRankChange);
 
         res.json({
             success: true,
@@ -91,7 +91,7 @@ Router.post("/setrank/:groupId", Auth, async (req, res) => {
         const RankEntry = Roles.find(r => r.name.toLowerCase() === RankName.toLowerCase());
         if (!RankEntry) return res.status(400).json({ error: "Rank not found" });
 
-        await SetRank(GroupId, UserId, RankEntry.rank, "API", LogRankChange);
+        await SetRank(GroupId, UserId, RankEntry.rank, "API", logRankChange);
         res.json({ success: true, Username, NewRank: RankEntry.name });
     } catch (Err) {
         res.status(500).json({ error: Err.message || "Unknown error" });
