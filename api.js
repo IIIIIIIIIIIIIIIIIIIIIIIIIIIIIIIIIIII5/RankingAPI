@@ -1,6 +1,6 @@
 const express = require("express");
 const { SetRank, GetCurrentRank, FetchRoles, GetRobloxUserId, ExileUser, LeaveGroup } = require("./roblox");
-const { LogRankChange, GetJsonBin, SaveJsonBin } = require("./utils");
+const { logRankChange, getJsonBin, saveJsonBin } = require("./utils");
 
 const Router = express.Router();
 
@@ -9,8 +9,8 @@ async function Auth(req, res, next) {
     if (!Auth) return res.status(403).json({ error: "Missing Auth key" });
 
     try {
-        const Db = await GetJsonBin();
-        console.log("Db from GetJsonBin():", Db);
+        const Db = await getJsonBin();
+        console.log("Db from getJsonBin():", Db);
 
         Db.ApiKeys = Db.ApiKeys || {};
         const AllKeys = Object.values(Db.ApiKeys).flat();
@@ -126,14 +126,14 @@ Router.post("/block", async (req, res) => {
         const { Type, Id } = req.body;
         if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
 
-        const Db = await GetJsonBin();
+        const Db = await getJsonBin();
         Db.BlockedUsers = Db.BlockedUsers || [];
         Db.BlockedServers = Db.BlockedServers || [];
 
         if (Type === "user" && !Db.BlockedUsers.includes(Id)) Db.BlockedUsers.push(Id);
         if (Type === "server" && !Db.BlockedServers.includes(Id)) Db.BlockedServers.push(Id);
 
-        await SaveJsonBin(Db);
+        await saveJsonBin(Db);
         res.json({ success: true, Message: `${Type} ${Id} blocked successfully.` });
     } catch (Err) {
         res.status(500).json({ error: Err.message || "Unknown error" });
@@ -145,14 +145,14 @@ Router.post("/unblock", async (req, res) => {
         const { Type, Id } = req.body;
         if (!Type || !Id) return res.status(400).json({ error: "Missing Type or Id" });
 
-        const Db = await GetJsonBin();
+        const Db = await getJsonBin();
         Db.BlockedUsers = Db.BlockedUsers || [];
         Db.BlockedServers = Db.BlockedServers || [];
 
         if (Type === "user") Db.BlockedUsers = Db.BlockedUsers.filter(u => u !== Id);
         if (Type === "server") Db.BlockedServers = Db.BlockedServers.filter(s => s !== Id);
 
-        await SaveJsonBin(Db);
+        await saveJsonBin(Db);
         res.json({ success: true, Message: `${Type} ${Id} unblocked successfully.` });
     } catch (Err) {
         res.status(500).json({ error: Err.message || "Unknown error" });
