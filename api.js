@@ -87,7 +87,7 @@ Router.post("/setrank/:groupId", Auth, async (req, res) => {
         const RankEntry = Roles.find(r => r.name.toLowerCase() === RankName.toLowerCase());
         if (!RankEntry) return res.status(400).json({ error: "Rank not found" });
 
-        await SetRank(GroupId, UserId, RankEntry.rank, "API", logRankChange);
+        await SetRank(GroupId, UserId, RankEntry.id, "API", logRankChange);
         res.json({ success: true, Username, NewRank: RankEntry.name });
     } catch (Err) {
         res.status(500).json({ error: Err.message || "Unknown error" });
