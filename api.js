@@ -27,9 +27,9 @@ router.post("/promote/:groupId", auth, async (req, res) => {
     try {
         const groupId = Number(req.params.groupId);
         const username = req.body.Username;
-        const userId = await getRobloxUserId(username);
-        const currentRank = await getCurrentRank(groupId, userId);
-        const roles = await fetchRoles(groupId);
+        const userId = await GetRobloxUserId(username);
+        const currentRank = await GetCurrentRank(groupId, userId);
+        const roles = await FetchRoles(groupId);
 
         const sortedRanks = Object.keys(roles).map(Number).sort((a, b) => a - b);
         const currentIndex = sortedRanks.indexOf(currentRank);
@@ -48,9 +48,9 @@ router.post("/demote/:groupId", auth, async (req, res) => {
     try {
         const groupId = Number(req.params.groupId);
         const username = req.body.Username;
-        const userId = await getRobloxUserId(username);
-        const currentRank = await getCurrentRank(groupId, userId);
-        const roles = await fetchRoles(groupId);
+        const userId = await GetRobloxUserId(username);
+        const currentRank = await GetCurrentRank(groupId, userId);
+        const roles = await FetchRoles(groupId);
 
         const sortedRanks = Object.keys(roles).map(Number).sort((a, b) => a - b);
         const currentIndex = sortedRanks.indexOf(currentRank);
@@ -70,9 +70,9 @@ router.post("/setrank/:groupId", auth, async (req, res) => {
         const groupId = Number(req.params.groupId);
         const username = req.body.Username;
         const rankName = req.body.RankName;
-        const userId = await getRobloxUserId(username);
+        const userId = await GetRobloxUserId(username);
 
-        const roles = await fetchRoles(groupId);
+        const roles = await FetchRoles(groupId);
         const rankEntry = Object.entries(roles).find(([_, info]) => info.name.toLowerCase() === rankName.toLowerCase());
 
         if (!rankEntry) return res.status(400).json({ error: "Rank not found" });
@@ -90,9 +90,9 @@ router.post("/exile/:groupId", auth, async (req, res) => {
     try {
         const groupId = Number(req.params.groupId);
         const username = req.body.Username;
-        const userId = await getRobloxUserId(username);
+        const userId = await GetRobloxUserId(username);
 
-        await exileUser(groupId, userId);
+        await ExileUser(groupId, userId);
 
         res.json({ success: true, username, message: "User exiled from group" });
     } catch (err) {
@@ -103,7 +103,7 @@ router.post("/exile/:groupId", auth, async (req, res) => {
 router.post("/leave/:groupId", auth, async (req, res) => {
     try {
         const groupId = Number(req.params.groupId);
-        await leaveGroup(groupId);
+        await LeaveGroup(groupId);
 
         res.json({ success: true, message: `Left group ${groupId}` });
     } catch (err) {
